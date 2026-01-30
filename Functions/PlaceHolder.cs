@@ -1,25 +1,18 @@
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Functions.Database;
 
 namespace Functions;
 
-public class PlaceHolder
+public class PlaceHolder(ILogger<PlaceHolder> logger, ICosmos cosmos)
 {
-    private readonly ILogger<PlaceHolder> _logger;
-
-    public PlaceHolder(ILogger<PlaceHolder> logger)
-    {
-        _logger = logger;
-    }
-
     [Function("PlaceHolder")]
-    public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
+    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
-        return new OkObjectResult("Welcome to Azure Functions!");
-        
+        logger.LogInformation("C# HTTP trigger function processed a request.");
+        var res = req.CreateResponse(HttpStatusCode.OK);
+        var blah = cosmos.GetClient().GetContainer("this should break", "this should break");
+        var response = blah.CreateItemAsync(new { name = "asdf" } );
+        var item = response.Result;
+        await res.WriteStringAsync(item.Resource.ToString());
+        return res;
     }
-
 }
