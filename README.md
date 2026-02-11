@@ -94,7 +94,7 @@ npm run dev
 **Terminal 2 - Azure Functions Backend:**
 ```bash
 cd Functions
-dotnet run
+func start --port 7106
 ```
 
 The frontend automatically proxies API requests from `/api/*` to the backend at `http://localhost:7106/api/*`
