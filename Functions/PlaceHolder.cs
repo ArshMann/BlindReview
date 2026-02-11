@@ -2,17 +2,40 @@ using Functions.Database;
 
 namespace Functions;
 
-public class PlaceHolder(ILogger<PlaceHolder> logger, ICosmos cosmos)
+// Requires Cosmos to be setup first to work
+// public class PlaceHolder(ILogger<PlaceHolder> logger, ICosmos cosmos)
+// {
+//     [Function("PlaceHolder")]
+//     public async Task<HttpResponseData> Run(
+//         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+//     {
+//         var client = cosmos.GetClient();
+//
+//         var container = client.GetContainer(
+//             Environment.GetEnvironmentVariable("CosmosDatabase")!,
+//             Environment.GetEnvironmentVariable("CosmosContainer")!
+//         );
+//
+//         var created = await container.CreateItemAsync(new { name = "asdf" });
+//
+//         var res = req.CreateResponse(HttpStatusCode.OK);
+//         await res.WriteStringAsync(created.Resource.ToString());
+//         return res;
+//     }
+// }
+
+
+
+// HTTP Test (No Cosmos)
+public class PlaceHolder(ILogger<PlaceHolder> logger)
 {
     [Function("PlaceHolder")]
-    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
+    public async Task<HttpResponseData> Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
-        logger.LogInformation("C# HTTP trigger function processed a request.");
+        logger.LogInformation("PlaceHolder hit");
         var res = req.CreateResponse(HttpStatusCode.OK);
-        var blah = cosmos.GetClient().GetContainer("this should break", "this should break");
-        var response = blah.CreateItemAsync(new { name = "asdf" } );
-        var item = response.Result;
-        await res.WriteStringAsync(item.Resource.ToString());
+        await res.WriteStringAsync("Functions API is working ✅");
         return res;
     }
 }
