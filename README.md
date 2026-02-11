@@ -55,7 +55,19 @@ git clone <repository-url>
 cd BlindReview
 ```
 
-### 2. Frontend Setup
+### 2. Backend Setup
+
+Open a new terminal and navigate to the Functions directory:
+
+```bash
+cd Functions
+dotnet restore
+func start --port 7106
+```
+
+The Azure Functions will start on **http://localhost:7106**
+
+### 3. Frontend Setup
 
 ```bash
 cd frontend
@@ -64,18 +76,6 @@ npm run dev
 ```
 
 The frontend will start on **http://localhost:5173**
-
-### 3. Backend Setup
-
-Open a new terminal and navigate to the Functions directory:
-
-```bash
-cd Functions
-dotnet build
-dotnet run
-```
-
-The Azure Functions will start on **http://localhost:7106**
 
 ### 4. Verify Connectivity
 

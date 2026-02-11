@@ -1,0 +1,55 @@
+﻿---Credit System Design---
+
+
+TO TRACK--------------------------
+
+USERS
+-credits_available
+-credits_escrowed
+-reputation (0-100)
+-review_quality_score (rolling avg)
+-submissions
+
+SUBMISSIONS
+-user_id (confidential)
+-review_goal (ex. 3 reviews)
+-credits_per_review (bounty)
+-status (OPEN, IN_REVIEW, COMPLETE, CLOSED)
+-reviews
+
+REVIEWS
+-submission_id
+-reviewer_id (confidential)
+-rubric_scores (structured)
+-text_feedback
+-status (PENDING_QC, APPROVED, REJECTED)
+
+
+
+CREDIT FLOW------------------------
+
+1. Posting a submission
+Author requests N (review_goal) reviews of submission:
+Cost = N * credits_per_review
+Subtract Cost from credits_available
+Add Cost to credits_escrowed
+
+2. Claiming a review slot
+Reviewer can claim a review slot so that a submission does not receive more reviews than its review_goal
+Reviewer must submit the review within a certain timeframe after claiming review slot
+Reviewer can only hold 1 claim at a time (possibly more depending on reputation)
+If Reviewer fails to submit review within timeframe, claim expires and they face some penalty
+
+3. Submitting a review -> Quality check
+Review goes through automated quality check
+If passed, it becomes available to Author
+Author completes quality check form
+Quality check form is scanned and Reviewer's reputation is updated
+Reviewer may repeal the reputation change
+If Author claims in quality check form that the review is unnacceptable, moderator will check the claim and decide if
+the review is indeed unacceptable
+If it is deemed unacceptable, Author does not spend credits and Reviewer does earn credits, and Reviewer may receive
+penalty
+Otherwise:
+Review has credits granted (subtract the submission's credits_per_review from Author's credits_escrow and
+add them to Reviewer's credits_available)
