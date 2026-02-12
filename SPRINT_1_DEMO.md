@@ -115,21 +115,17 @@ This is what actually took the sprint:
 
 Yes, this is boring. Yes, it's necessary. You can't build E1-E5 without it.
 
-#### Epic 1: Authentication & Role Management
-- **Story 1.1:** User Login/Logout System
+#### Authentication & Role Management
   - **Status:** 🔄 Not Started
   - **Why:** We wanted to get basic infrastructure working first. Auth is Sprint 2.
 
-- **Story 1.2:** Role-Based Access Control
   - **Status:** 📋 Basic Pages Exist
   - **What happened:** Routing for Student/Reviewer/Admin roles is scaffolded.
 
-#### Epic 2: User Interface & Core Workflows
-- **Story 2.1:** Main Dashboard & Navigation
+#### User Interface & Core Workflows
   - **Status:** ✅ Basic Structure Done
   - **What happened:** Pages for each epic are scaffolded. Navigation works.
 
-- **Story 2.2-2.5:** Links to E1, E2, E3, E4, E5 workflows (see above - all have page shells)
 
 #### Backend Infrastructure (Supporting All Epics)
 - **Azure Functions Setup** ✅ Done (Markus)
@@ -248,8 +244,6 @@ Yes, this is boring. Yes, it's necessary. You can't build E1-E5 without it.
 ---
 
 ## 5. Team Collaboration (HOW YOU WORKED TOGETHER)
-
-### Score:
 
 ### Team Breakdown
 **Markus** - Backend infrastructure  
