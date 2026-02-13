@@ -2,8 +2,7 @@ using Functions.Database;
 
 namespace Functions;
 
-// Requires Cosmos to be setup first to work
- public class PlaceHolder(ILogger<PlaceHolder> logger, ICosmos cosmos)
+ public class Reviews(ILogger<PlaceHolder> logger, ICosmos cosmos)
  {
      [Function("PlaceHolder")]
      public async Task<HttpResponseData> Run(
@@ -15,11 +14,13 @@ namespace Functions;
              "blind-review", 
               "users"); 
          
-         var created = await container.ReadItemAsync<User>("5c4f31df-69e9-4fce-9dc9-66def9414e37", new PartitionKey());
-
+         var reviewer= await container.ReadItemAsync<User>("5c4f31df-69e9-4fce-9dc9-66def9414e37", new PartitionKey());
+         var reviewee= await container.ReadItemAsync<User>("5c4f31df-69e9-4fce-9dc9-66def9414e37", new PartitionKey());
+        
+         // read item
+         // update 
          var res = req.CreateResponse(HttpStatusCode.OK);
          await res.WriteStringAsync(created.Resource.ToString());
          return res;
      }
  }
- 
