@@ -1,0 +1,32 @@
+@startuml Submission_StateDiagram
+[*] --> Pending : Student submits paper
+
+Pending --> UnderReview : Reviewer assigned &\nfirst review started
+
+UnderReview --> UnderReview : Additional reviews\nsubmitted
+
+UnderReview --> Completed : All required reviews\nsubmitted & published
+
+Completed --> [*]
+
+note right of Pending
+    Submission is waiting
+    for reviewers to be
+    assigned or to start
+    reviewing.
+end note
+
+note right of UnderReview
+    At least one reviewer
+    is actively working on
+    a review. More reviews
+    can be added.
+end note
+
+note right of Completed
+    All reviews are done
+    and published. Author
+    can now see feedback.
+end note
+
+@enduml

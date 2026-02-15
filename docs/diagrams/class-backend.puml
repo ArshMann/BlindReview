@@ -1,0 +1,100 @@
+@startuml BlindReview_ClassDiagram
+skinparam classAttributeIconSize 0
+
+class Submission {
+    +string Id
+    +string BlindId
+    +string Title
+    +string ContentBlobUrl
+    +DateTime SubmittedAt
+    +SubmissionType Type
+    +SubmissionStatus Status
+    +string AuthorHash
+    +List<string> ReviewIds
+    --
+    +Submission(title, type)
+    +AssignReview(reviewId)
+    +UpdateStatus(status)
+}
+
+enum SubmissionType {
+    Paper
+    Resume
+}
+
+enum SubmissionStatus {
+    Pending
+    UnderReview
+    Completed
+}
+
+class Review {
+    +string Id
+    +string SubmissionId
+    +string ReviewerHash
+    +int Score
+    +string Comments
+    +DateTime SubmittedAt
+    +bool IsPublished
+    --
+    +Review(submissionId, reviewerHash)
+    +Publish()
+}
+
+class User {
+    +string Id
+    +string Email
+    +string PasswordHash
+    +UserRole Role
+    +int Credits
+    +DateTime CreatedAt
+    --
+    +User(email, role)
+    +EarnCredits(amount)
+    +SpendCredits(amount)
+}
+
+enum UserRole {
+    Student
+    Reviewer
+    Instructor
+}
+
+class CreditTransaction {
+    +string Id
+    +string UserId
+    +int Amount
+    +TransactionType Type
+    +DateTime CreatedAt
+    --
+    +CreditTransaction(userId, amount, type)
+}
+
+enum TransactionType {
+    Earned
+    Spent
+}
+
+
+Submission "1" --> "*" Review : contains
+User "1" --> "*" Submission : submits (anonymously)
+User "1" --> "*" Review : writes (anonymously)
+User "1" --> "*" CreditTransaction : has
+Submission ..> SubmissionType : uses
+Submission ..> SubmissionStatus : uses
+User ..> UserRole : uses
+CreditTransaction ..> TransactionType : uses
+
+note right of Submission
+    BlindId is used for anonymous
+    display. AuthorHash links back
+    to User without exposing identity.
+end note
+
+note right of Review
+    ReviewerHash prevents reviewer
+    identity from being exposed to
+    authors or other reviewers.
+end note
+
+@enduml

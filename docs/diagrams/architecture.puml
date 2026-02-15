@@ -1,0 +1,55 @@
+@startuml BlindReview_Architecture
+!define RECTANGLE class
+
+skinparam rectangle {
+    BackgroundColor<<frontend>> LightBlue
+    BackgroundColor<<backend>> LightGreen
+    BackgroundColor<<database>> LightYellow
+    BackgroundColor<<storage>> LightCoral
+}
+
+package "Client Layer" <<frontend>> {
+    [React Frontend\n(TypeScript + Vite)] as Frontend
+    note right of Frontend
+        - User Interface
+        - Submission Forms
+        - Review Display
+        - Anonymous Workflows
+        - Runs on localhost:5173
+    end note
+}
+
+package "Business Logic Layer" <<backend>> {
+    [Azure Functions\n(.NET 8 Isolated)] as Functions
+    note right of Functions
+        - REST API Endpoints
+        - Authentication Logic
+        - Anonymization Engine
+        - Business Rules
+        - Runs on localhost:7106 (dev)
+    end note
+}
+
+package "Data Layer" {
+    database "Cosmos DB\n(NoSQL)" <<database>> as CosmosDB
+    note right of CosmosDB
+        - Review Documents
+        - User Profiles
+        - Submission Metadata
+        - Partitioned by ID
+    end note
+    
+    storage "Azure Blob\nStorage" <<storage>> as BlobStorage
+    note right of BlobStorage
+        - Paper PDFs
+        - Resume Files
+        - Review Attachments
+        - Content-addressed
+    end note
+}
+
+Frontend -down-> Functions : HTTP/REST\n(Port 5173 → 7106)
+Functions -down-> CosmosDB : Azure SDK\n(Managed Identity)
+Functions -down-> BlobStorage : Azure SDK\n(Managed Identity)
+
+@enduml

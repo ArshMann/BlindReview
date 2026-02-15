@@ -1,0 +1,49 @@
+@startuml SubmitPaper_Sequence
+actor Student
+participant "SubmitPaper\nPage" as Frontend
+participant "Azure\nFunctions" as Backend
+participant "Submission\nService" as Service
+participant "Anonymization\nEngine" as Anon
+database "Cosmos DB" as DB
+participant "Blob\nStorage" as Blob
+
+Student -> Frontend: Fill out paper submission form\n(title, abstract, file)
+activate Frontend
+
+Student -> Frontend: Click "Submit Paper"
+Frontend -> Frontend: Validate form data\n(required fields, file size)
+
+Frontend -> Backend: POST /api/submissions\n{title, abstract, file, userId}
+activate Backend
+
+Backend -> Service: CreateSubmission(title, abstract, userId)
+activate Service
+
+Service -> Anon: AnonymizeAuthor(userId)
+activate Anon
+Anon --> Service: Return blindId, authorHash
+deactivate Anon
+
+Service -> Blob: Upload file → blob URL
+activate Blob
+Blob --> Service: Return blobUrl
+deactivate Blob
+
+Service -> Service: Create Submission object\n(blindId, blobUrl, status=Pending)
+
+Service -> DB: InsertDocument(submission, "Submissions")
+activate DB
+DB --> Service: Return submissionId
+deactivate DB
+
+Service --> Backend: Return Submission{id, blindId, status}
+deactivate Service
+
+Backend --> Frontend: HTTP 201 Created\n{submissionId, blindId}
+deactivate Backend
+
+Frontend -> Frontend: Display success message\n"Paper submitted as {blindId}"
+Frontend --> Student: Show confirmation\n+ blind ID for tracking
+deactivate Frontend
+
+@enduml
