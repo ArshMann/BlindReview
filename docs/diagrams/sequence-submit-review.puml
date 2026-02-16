@@ -1,0 +1,62 @@
+@startuml SubmitReview_Sequence
+actor Reviewer
+participant "SubmitReview\nPage" as Frontend
+participant "Azure\nFunctions" as Backend
+participant "Review\nService" as Service
+participant "Anonymization\nEngine" as Anon
+database "Cosmos DB" as DB
+
+Reviewer -> Frontend: Navigate to review page\nfor submission {blindId}
+activate Frontend
+
+Frontend -> Backend: GET /api/submissions/{blindId}
+activate Backend
+Backend -> DB: QueryDocuments("SELECT * FROM Submissions\nWHERE blindId = '{blindId}'")
+activate DB
+DB --> Backend: Return submission (without authorHash)
+deactivate DB
+Backend --> Frontend: HTTP 200 OK\n{submission data}
+deactivate Backend
+
+Frontend -> Frontend: Display paper title, abstract\n(no author info visible)
+Frontend --> Reviewer: Show submission details
+
+Reviewer -> Frontend: Fill review form\n(score, comments, rubric)
+
+Reviewer -> Frontend: Click "Submit Review"
+Frontend -> Frontend: Validate review data\n(score in range, comments not empty)
+
+Frontend -> Backend: POST /api/reviews\n{submissionId, score, comments, reviewerId}
+activate Backend
+
+Backend -> Service: CreateReview(submissionId, score, comments, reviewerId)
+activate Service
+
+Service -> Anon: AnonymizeReviewer(reviewerId)
+activate Anon
+Anon --> Service: Return reviewerHash
+deactivate Anon
+
+Service -> Service: Create Review object\n(submissionId, reviewerHash, score, comments)
+
+Service -> DB: InsertDocument(review, "Reviews")
+activate DB
+DB --> Service: Return reviewId
+deactivate DB
+
+Service -> DB: Update submission\n(add reviewId to reviewIds array)
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Backend: Return Review{id, submissionId}
+deactivate Service
+
+Backend --> Frontend: HTTP 201 Created\n{reviewId}
+deactivate Backend
+
+Frontend -> Frontend: Display success message\n"Review submitted successfully"
+Frontend --> Reviewer: Show confirmation
+deactivate Frontend
+
+@enduml

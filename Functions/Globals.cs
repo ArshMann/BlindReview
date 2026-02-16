@@ -8,3 +8,4 @@ global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Azure.Functions.Worker.Http;
 global using System.Net;
 global using Azure.Identity;
+global using Newtonsoft.Json;
