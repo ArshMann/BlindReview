@@ -1,12 +1,13 @@
+using Azure.Storage.Blobs;
 using Functions.Utils;
 
-namespace Functions.Database;
+namespace Functions.Storage;
 
-public interface ICosmos
+public interface IBlob
 {
-    public CosmosClient client { get; set; }
+    public BlobServiceClient client { get; set; }
 
-    public CosmosClient GetClient();
+    public BlobServiceClient GetClient();
 
 
     public Task<Result<T>> CreateItem<T>(
@@ -16,15 +17,6 @@ public interface ICosmos
         PartitionKey? partitionKey = null,
         ItemRequestOptions? requestOptions = null,
         CancellationToken cancellationToken = default(CancellationToken));
-    
-    public Task<Result<T>> GetItem<T>(
-        string databaseName,
-        string containerName,
-        string id,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
-
     
     public Task<Result<T>> PatchItem<T>(
         string databaseName,

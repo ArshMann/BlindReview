@@ -1,21 +1,22 @@
+using Azure.Storage.Blobs;
 using Functions.Utils;
 using Microsoft.Azure.Cosmos.Linq;
 
-namespace Functions.Database;
+namespace Functions.Storage;
 
-public class Cosmos: ICosmos
+public class Blob: IBlob 
 {
-    public CosmosClient client { get; set; }
+    public BlobServiceClient client { get; set; }
     
-    public Cosmos()
+    public Blob()
     {
-        var cosmosUrl = Environment.GetEnvironmentVariable("CosmosConnection")
-                        ?? throw new InvalidOperationException("Missing CosmosConnection");
+        var blobUrl = Environment.GetEnvironmentVariable("BlobConnection")
+                        ?? throw new InvalidOperationException("Missing BlobConnection");
     
-        client = new CosmosClient(cosmosUrl, new DefaultAzureCredential());
+        client = new BlobServiceClient(new Uri(blobUrl), new DefaultAzureCredential()); 
     }
 
-    public CosmosClient GetClient()
+    public BlobServiceClient GetClient()
     {
         return client;
     }
@@ -32,26 +33,6 @@ public class Cosmos: ICosmos
         {
             var container = client.GetContainer(databaseName, containerName);
             var response = await container.CreateItemAsync(item, partitionKey, requestOptions, cancellationToken);
-            return Result<T>.Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return Result<T>.Fail(ex);
-        }
-    }
-    
-    public async Task<Result<T>> GetItem<T>(
-        string databaseName,
-        string containerName,
-        string id,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var container = client.GetContainer(databaseName, containerName);
-            var response = await container.ReadItemAsync<T>(id, partitionKey ?? new PartitionKey(), requestOptions, cancellationToken);
             return Result<T>.Ok(response);
         }
         catch (Exception ex)

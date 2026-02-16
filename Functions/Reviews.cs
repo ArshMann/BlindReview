@@ -20,7 +20,7 @@ namespace Functions;
          // read item
          // update 
          var res = req.CreateResponse(HttpStatusCode.OK);
-         await res.WriteStringAsync(created.Resource.ToString());
+         await res.WriteStringAsync("Worked");
          return res;
      }
  }
