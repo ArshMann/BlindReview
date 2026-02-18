@@ -8,6 +8,10 @@ var host = new HostBuilder()
     .ConfigureServices(services =>
     {
         services.AddSingleton<ICosmos, Cosmos>();
+        services.Configure<JsonSerializerOptions>(options =>
+        {
+            options.WriteIndented = true;
+        });
     })
     .Build();
 
