@@ -25,7 +25,7 @@ public static class IngressHandlers
             return Result<T>.Fail(new Exception($"Failed to parse request: {ex.Message}", ex));
         }
     }
-    public static Result<Stream> RequestBodyStreamResult<T>(HttpRequestData request)
+    public static Result<Stream> RequestBodyStreamResult(HttpRequestData request)
     {
         try
         {
