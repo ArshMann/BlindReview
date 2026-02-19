@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Functions.Utils;
 
 namespace Functions.Storage;
@@ -10,27 +11,14 @@ public interface IBlob
     public BlobServiceClient GetClient();
 
 
-    public Task<Result<T>> CreateItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
+    public Task<Result<BlobContentInfo>> CreateItem(
+        string blobContainerName,
+        string blobName,
+        Stream blobStream
+    );
     
-    public Task<Result<T>> PatchItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
-
-    public Task<Result<List<T>>> QueryItemFixed<T>(
-        string databaseName,
-        string containerName,
-        Func<IQueryable<T>, IQueryable<T>> query,
-        string? continuationToken = null,
-        QueryRequestOptions? requestOptions = null
+    public Task<Result<BlobDownloadResult>> GetItem(
+        string blobContainerName,
+        string blobName
     );
 }
