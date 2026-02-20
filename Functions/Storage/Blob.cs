@@ -9,9 +9,10 @@ public class AzureBlobService : IBlobService
 {
     private readonly BlobServiceClient _blobServiceClient;
 
-    public AzureBlobService(BlobServiceClient blobServiceClient)
+    public AzureBlobService()
     {
-        _blobServiceClient = blobServiceClient;
+        var connectionString = Environment.GetEnvironmentVariable("BlobConnection");
+        _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
     public async Task<Result<Uri>> UploadAsync(
