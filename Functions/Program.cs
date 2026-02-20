@@ -1,4 +1,5 @@
 using Functions.Database;
+using Functions.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -8,6 +9,7 @@ var host = new HostBuilder()
     .ConfigureServices(services =>
     {
         services.AddSingleton<ICosmos, Cosmos>();
+        services.AddSingleton<IBlob, Blob>();
         services.Configure<JsonSerializerOptions>(options =>
         {
             options.WriteIndented = true;

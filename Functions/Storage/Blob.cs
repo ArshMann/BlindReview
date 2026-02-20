@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Functions.Utils;
 using Microsoft.Azure.Cosmos.Linq;
 
@@ -21,75 +22,42 @@ public class Blob: IBlob
         return client;
     }
 
-    public async Task<Result<T>> CreateItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var container = client.GetContainer(databaseName, containerName);
-            var response = await container.CreateItemAsync(item, partitionKey, requestOptions, cancellationToken);
-            return Result<T>.Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return Result<T>.Fail(ex);
-        }
-    }
-    
-    public async Task<Result<T>> PatchItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var container = client.GetContainer(databaseName, containerName);
-            var response = await container.UpsertItemAsync(item, partitionKey, requestOptions, cancellationToken);
-            return Result<T>.Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return Result<T>.Fail(ex);
-        }
-    }
-    
-    public async Task<Result<List<T>>> QueryItemFixed<T>(
-        string databaseName,
-        string containerName,
-        Func<IQueryable<T>, IQueryable<T>> query,
-        string? continuationToken = null, 
-        QueryRequestOptions?requestOptions = null
+    public async Task<Result<BlobContentInfo>> CreateItem(
+        string blobContainerName,
+        string blobName,
+        Stream blobStream
     )
     {
         try
         {
-            var container = client.GetContainer(databaseName, containerName);
-            var response = container.GetItemLinqQueryable<T>();
-            var output = new List<T>();
-            
-            var result = query(response.AsQueryable());
-            using var itererator = result.ToFeedIterator();
-            
-            while (itererator.HasMoreResults)
-            {
-                foreach (var item in await itererator.ReadNextAsync())
-                {
-                    output.Add(item);
-                }
-            }
-            return Result<List<T>>.Ok(output);
+            var container = client.GetBlobContainerClient(blobContainerName);
+            var blobClient = container.GetBlobClient(blobName);
+            var res = await blobClient.UploadAsync(blobStream);
+            return Result<BlobContentInfo>.Ok(res);
         }
         catch (Exception ex)
         {
-            return Result<List<T>>.Fail(ex);
+            return Result<BlobContentInfo>.Fail(ex);
+        }
+    }
+    
+    public async Task<Result<BlobDownloadResult>> GetItem(
+        string blobContainerName,
+        string blobName
+    )
+    {
+        try
+        {
+            var container = client.GetBlobContainerClient(blobContainerName);
+            var blobClient = container.GetBlobClient(blobName);
+            var content = await blobClient.DownloadContentAsync();
+            if (content.HasValue) 
+                return Result<BlobDownloadResult>.Ok(content.Value);
+            throw new Exception($"Blob {blobContainerName}/{blobName} not found");
+        }
+        catch (Exception ex)
+        {
+            return Result<BlobDownloadResult>.Fail(ex);
         }
     }
 }
