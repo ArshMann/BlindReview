@@ -9,7 +9,7 @@ var host = new HostBuilder()
     {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.AddSingleton<ICosmos, Cosmos>();
-        services.AddSingleton<IBlob, Blob>();
+        services.AddSingleton<IBlobService, AzureBlobService>();
         services.Configure<JsonSerializerOptions>(options =>
         {
             options.WriteIndented = true;
