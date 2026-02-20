@@ -10,10 +10,10 @@ public class Blob: IBlob
     
     public Blob()
     {
-        var blobUrl = Environment.GetEnvironmentVariable("BlobConnection")
+        var connectionString = Environment.GetEnvironmentVariable("BlobConnection")
                         ?? throw new InvalidOperationException("Missing BlobConnection");
     
-        client = new BlobServiceClient(new Uri(blobUrl), new DefaultAzureCredential()); 
+        client = new BlobServiceClient(connectionString); 
     }
 
     public BlobServiceClient GetClient()

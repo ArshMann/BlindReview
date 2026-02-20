@@ -4,14 +4,20 @@
         "applicationInsights": {
             "samplingSettings": {
                 "isEnabled": true,
+                "minSamplingPercentage": 10,
+                "maxSamplingPercentage": 100,
+                "evaluationInterval": "01:00:00",
                 "excludedTypes": "Request"
-            },
-            "enableLiveMetricsFilters": true
+            }
+        },
+        "logLevel": {
+            "default": "Warning",
+            "Functions": "Information"
         }
     },
     "extensions": {
         "http": {
             "routePrefix": ""
         }
-    } 
+    }
 }
