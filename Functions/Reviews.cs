@@ -1,9 +1,8 @@
-using Functions.Database;
 using Functions.Storage;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, ICosmos cosmos, IBlobService blobService)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
     [Function("UploadImage")]
