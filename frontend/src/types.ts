@@ -2,6 +2,24 @@ export type SubmissionStatus = 'pending' | 'in-review' | 'completed';
 export type AssignmentStatus = 'pending' | 'in-progress' | 'submitted';
 export type ReviewCycleStatus = 'draft' | 'open' | 'closed' | 'completed';
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Student' | 'Reviewer' | 'Instructor';
+  credits: number;
+  createdAt: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  loading: boolean;
+}
+
 export interface SubmissionForm {
   title: string;
   subject: string;
