@@ -1,10 +1,12 @@
 using Functions.Storage;
+using Functions.HTTP;
 
 namespace Functions;
 
 public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
+
     [Function("UploadImage")]
     public async Task<HttpResponseData> UploadImage(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
@@ -15,35 +17,27 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 
         if (imageStream == null)
         {
-            var badRes = req.CreateResponse(HttpStatusCode.BadRequest);
-            await badRes.WriteStringAsync("Please provide an image in the request body.");
-            return badRes;
+            return await Handlers.ErrorResponse(new Exception("Please provide an image in the request body."), req);
         }
 
-        string container = _containerName;
         string fileName = $"{Guid.NewGuid()}.jpg";
         string contentType = "image/jpeg";
 
-        var result = await blobService.UploadAsync(container, fileName, imageStream, contentType);
+        var result = await blobService.UploadAsync(_containerName, fileName, imageStream, contentType);
 
         if (result.isSuccess)
         {
-            var okRes = req.CreateResponse(HttpStatusCode.OK);
-            await okRes.WriteStringAsync($"Success! Image uploaded to: {result.value}");
-            return okRes;
+            return await Handlers.JsonResponse(new { Message = "Success", Url = result.value }, HttpStatusCode.OK, req);
         }
-        else
-        {
-            logger.LogError(result.error, "Upload failed");
-            var errRes = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errRes.WriteStringAsync("Upload failed. Check logs.");
-            return errRes;
-        }
+
+        logger.LogError(result.error, "Upload failed");
+        return await Handlers.ErrorResponse(result.error, req);
     }
+
     [Function("DownloadImage")]
     public async Task<HttpResponseData> DownloadImage(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "images/{fileName}")] HttpRequestData req,
-    string fileName)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "images/{fileName}")] HttpRequestData req,
+        string fileName)
     {
         logger.LogInformation($"Downloading: {fileName}");
 
@@ -51,13 +45,10 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 
         if (!result.isSuccess)
         {
-            var errorRes = req.CreateResponse(HttpStatusCode.NotFound);
-            await errorRes.WriteStringAsync("Image not found.");
-            return errorRes;
+            return await Handlers.ErrorResponse(new Exception("Image not found."), req);
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
-
         response.Headers.Add("Content-Type", result.value.ContentType);
 
         using (var blobStream = result.value.Stream)
@@ -67,10 +58,11 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 
         return response;
     }
+
     [Function("DeleteImage")]
     public async Task<HttpResponseData> DeleteImage(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "images/{fileName}")] HttpRequestData req,
-    string fileName)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "images/{fileName}")] HttpRequestData req,
+        string fileName)
     {
         logger.LogInformation($"Deleting: {fileName}");
 
@@ -78,16 +70,10 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
 
         if (result.isSuccess)
         {
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            string message = result.value ? "Deleted successfully." : "File didn't exist, but consider it gone.";
-            await response.WriteStringAsync(message);
-            return response;
+            var successData = new { Message = result.value ? "Deleted successfully." : "File not found." };
+            return await Handlers.JsonResponse(successData, HttpStatusCode.OK, req);
         }
-        else
-        {
-            var err = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await err.WriteStringAsync($"Delete failed: {result.error.Message}");
-            return err;
-        }
+
+        return await Handlers.ErrorResponse(result.error, req);
     }
 }
