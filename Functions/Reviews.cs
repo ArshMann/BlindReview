@@ -1,26 +1,79 @@
-using Functions.Database;
+using Functions.Storage;
+using Functions.HTTP;
 
 namespace Functions;
 
- public class Reviews(ILogger<PlaceHolder> logger, ICosmos cosmos)
- {
-     [Function("PlaceHolder")]
-     public async Task<HttpResponseData> Run(
-         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
-     {
-         var client = cosmos.GetClient();
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
+{
+    private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
 
-         var container = client.GetContainer(
-             "blind-review", 
-              "users"); 
-         
-         var reviewer= await container.ReadItemAsync<User>("5c4f31df-69e9-4fce-9dc9-66def9414e37", new PartitionKey());
-         var reviewee= await container.ReadItemAsync<User>("5c4f31df-69e9-4fce-9dc9-66def9414e37", new PartitionKey());
-        
-         // read item
-         // update 
-         var res = req.CreateResponse(HttpStatusCode.OK);
-         await res.WriteStringAsync("Worked");
-         return res;
-     }
- }
+    [Function("UploadImage")]
+    public async Task<HttpResponseData> UploadImage(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
+    {
+        logger.LogInformation("Processing image upload...");
+
+        var imageStream = req.Body;
+
+        if (imageStream == null)
+        {
+            return await Handlers.ErrorResponse(new Exception("Please provide an image in the request body."), req);
+        }
+
+        string fileName = $"{Guid.NewGuid()}.jpg";
+        string contentType = "image/jpeg";
+
+        var result = await blobService.UploadAsync(_containerName, fileName, imageStream, contentType);
+
+        if (result.isSuccess)
+        {
+            return await Handlers.JsonResponse(new { Message = "Success", Url = result.value }, HttpStatusCode.OK, req);
+        }
+
+        logger.LogError(result.error, "Upload failed");
+        return await Handlers.ErrorResponse(result.error, req);
+    }
+
+    [Function("DownloadImage")]
+    public async Task<HttpResponseData> DownloadImage(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "images/{fileName}")] HttpRequestData req,
+        string fileName)
+    {
+        logger.LogInformation($"Downloading: {fileName}");
+
+        var result = await blobService.DownloadAsync(_containerName, fileName);
+
+        if (!result.isSuccess)
+        {
+            return await Handlers.ErrorResponse(new Exception("Image not found."), req);
+        }
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", result.value.ContentType);
+
+        using (var blobStream = result.value.Stream)
+        {
+            await blobStream.CopyToAsync(response.Body);
+        }
+
+        return response;
+    }
+
+    [Function("DeleteImage")]
+    public async Task<HttpResponseData> DeleteImage(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "images/{fileName}")] HttpRequestData req,
+        string fileName)
+    {
+        logger.LogInformation($"Deleting: {fileName}");
+
+        var result = await blobService.DeleteAsync(_containerName, fileName);
+
+        if (result.isSuccess)
+        {
+            var successData = new { Message = result.value ? "Deleted successfully." : "File not found." };
+            return await Handlers.JsonResponse(successData, HttpStatusCode.OK, req);
+        }
+
+        return await Handlers.ErrorResponse(result.error, req);
+    }
+}

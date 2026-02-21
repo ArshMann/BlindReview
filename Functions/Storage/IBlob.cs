@@ -1,36 +1,28 @@
-using Azure.Storage.Blobs;
 using Functions.Utils;
 
 namespace Functions.Storage;
 
-public interface IBlob
+public interface IBlobService
 {
-    public BlobServiceClient client { get; set; }
+    // Upload: Returns Uri on success
+    Task<Result<Uri>> UploadAsync(
+        string container,
+        string name,
+        Stream content,
+        string contentType = null,
+        CancellationToken ct = default);
 
-    public BlobServiceClient GetClient();
+    // Download: Returns the BlobFile record on success
+    Task<Result<BlobFile>> DownloadAsync(
+        string container,
+        string name,
+        CancellationToken ct = default);
 
-
-    public Task<Result<T>> CreateItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
-    
-    public Task<Result<T>> PatchItem<T>(
-        string databaseName,
-        string containerName,
-        T item,
-        PartitionKey? partitionKey = null,
-        ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
-
-    public Task<Result<List<T>>> QueryItemFixed<T>(
-        string databaseName,
-        string containerName,
-        Func<IQueryable<T>, IQueryable<T>> query,
-        string? continuationToken = null,
-        QueryRequestOptions? requestOptions = null
-    );
+    // Delete: Now uses <bool> to fix error CS0305
+    Task<Result<bool>> DeleteAsync(
+        string container,
+        string name,
+        CancellationToken ct = default);
 }
+
+public record BlobFile(Stream Stream, string ContentType);

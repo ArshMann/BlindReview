@@ -9,10 +9,10 @@ public class Cosmos: ICosmos
     
     public Cosmos()
     {
-        var cosmosUrl = Environment.GetEnvironmentVariable("CosmosConnection")
-                        ?? throw new InvalidOperationException("Missing CosmosConnection");
-    
-        client = new CosmosClient(cosmosUrl, new DefaultAzureCredential());
+        var connectionString = Environment.GetEnvironmentVariable("CosmosConnection")
+                               ?? throw new InvalidOperationException("Missing CosmosConnection Environment Variable.");
+
+        client = new CosmosClient(connectionString);
     }
 
     public CosmosClient GetClient()
