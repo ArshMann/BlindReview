@@ -41,7 +41,7 @@ public class AzureBlobService : IBlobService
         }
     }
 
-    public async Task<Result<BlobFile>> DownloadAsync(
+    public async Task<Result<BlobDownloadStreamingResult>> DownloadAsync(
         string container,
         string name,
         CancellationToken ct = default)
@@ -54,18 +54,15 @@ public class AzureBlobService : IBlobService
             // DownloadStreamingAsync is efficient for large files
             BlobDownloadStreamingResult download = await blobClient.DownloadStreamingAsync(cancellationToken: ct);
 
-            return Result<BlobFile>.Ok(new BlobFile(
-                download.Content,
-                download.Details.ContentType
-            ));
+            return Result<BlobDownloadStreamingResult>.Ok(download);
         }
         catch (RequestFailedException ex) when (ex.Status == 404)
         {
-            return Result<BlobFile>.Fail("The specified blob does not exist.");
+            return Result<BlobDownloadStreamingResult>.Fail("The specified blob does not exist.");
         }
         catch (Exception ex)
         {
-            return Result<BlobFile>.Fail(ex);
+            return Result<BlobDownloadStreamingResult>.Fail(ex);
         }
     }
 

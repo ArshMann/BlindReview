@@ -49,12 +49,10 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService)
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", result.value.ContentType);
+        response.Headers.Add("Content-Type", result.value.Details.ContentType);
 
-        using (var blobStream = result.value.Stream)
-        {
-            await blobStream.CopyToAsync(response.Body);
-        }
+        await using var blobStream = result.value.Content;
+        await blobStream.CopyToAsync(response.Body);
 
         return response;
     }
