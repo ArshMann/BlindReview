@@ -1,6 +1,10 @@
 
+using System.IdentityModel.Tokens.Jwt;
 using Functions.Models;
 using Functions.Utils;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using User = Functions.Models.User;
 
 namespace Functions.HTTP;
 
@@ -49,5 +53,28 @@ public static class Handlers
         logger?.LogError(error, errorObject.message);
         await res.WriteAsJsonAsync(errorObject);
         return res;
+    }
+
+    public static Result<User> VerifyCaller(this HttpRequestData req, TokenService tokenService)
+    {
+        try
+        {
+            req.Headers.TryGetValues("Authorization", out var tokenOut);
+            var token = tokenOut?.FirstOrDefault();
+            var validatedToken =
+                tokenService.ValidateToken(token ?? throw new InvalidOperationException("Token is null"));
+            if (validatedToken == null) throw new NullReferenceException("Token is null");
+            return Result<User>.Ok(new User
+            {
+                id = validatedToken.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+                     throw new NullReferenceException("Email is null or empty in token"),
+                email = validatedToken.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
+                        throw new NullReferenceException("Email is null or empty in token"),
+            });
+        }
+        catch (Exception ex)
+        {
+            return Result<User>.Fail(ex);
+        }
     }
 }
