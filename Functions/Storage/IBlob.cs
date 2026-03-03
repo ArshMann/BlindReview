@@ -1,3 +1,5 @@
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Functions.Utils;
 
 namespace Functions.Storage;
@@ -5,7 +7,7 @@ namespace Functions.Storage;
 public interface IBlobService
 {
     // Upload: Returns Uri on success
-    Task<Result<Uri>> UploadAsync(
+    Task<Result<BlobClient>> UploadAsync(
         string container,
         string name,
         Stream content,
@@ -13,7 +15,7 @@ public interface IBlobService
         CancellationToken ct = default);
 
     // Download: Returns the BlobFile record on success
-    Task<Result<BlobFile>> DownloadAsync(
+    Task<Result<BlobDownloadStreamingResult>> DownloadAsync(
         string container,
         string name,
         CancellationToken ct = default);
@@ -25,4 +27,4 @@ public interface IBlobService
         CancellationToken ct = default);
 }
 
-public record BlobFile(Stream Stream, string ContentType);
+// public record BlobFile(Stream Stream, string ContentType);

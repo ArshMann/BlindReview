@@ -11,7 +11,7 @@
             }
         },
         "logLevel": {
-            "default": "Warning",
+            "default": "Information",
             "Functions": "Information"
         }
     },
