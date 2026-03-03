@@ -37,16 +37,16 @@ public static class Handlers
         }
     }
     // Don't think we'll need different error types 
-    public static async Task<HttpResponseData> ErrorResponse(Exception error, HttpRequestData req)
+    public static async Task<HttpResponseData> ErrorResponse(Exception error, HttpRequestData req, ILogger? logger = null)
     {
         var res = req.CreateResponse(HttpStatusCode.BadRequest);
         var errorObject = new Error()
         {
-            internalMessage = error.Message,
             error = error,
             statusCode = HttpStatusCode.BadRequest,
-            message = "Bad Request", // TODO update this, probably function sig
+            message = error.Message, 
         };
+        logger?.LogError(error, errorObject.message);
         await res.WriteAsJsonAsync(errorObject);
         return res;
     }

@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Functions.Utils;
 
@@ -6,7 +7,7 @@ namespace Functions.Storage;
 public interface IBlobService
 {
     // Upload: Returns Uri on success
-    Task<Result<Uri>> UploadAsync(
+    Task<Result<BlobClient>> UploadAsync(
         string container,
         string name,
         Stream content,

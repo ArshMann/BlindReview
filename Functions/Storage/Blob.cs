@@ -1,3 +1,4 @@
+using System.Reflection.Metadata;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -15,7 +16,7 @@ public class AzureBlobService : IBlobService
         _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
-    public async Task<Result<Uri>> UploadAsync(
+    public async Task<Result<BlobClient>> UploadAsync(
         string container,
         string name,
         Stream content,
@@ -27,17 +28,12 @@ public class AzureBlobService : IBlobService
             var containerClient = _blobServiceClient.GetBlobContainerClient(container);
             var blobClient = containerClient.GetBlobClient(name);
 
-            var options = new BlobUploadOptions
-            {
-                HttpHeaders = new BlobHttpHeaders { ContentType = contentType ?? "application/octet-stream" }
-            };
-
-            await blobClient.UploadAsync(content, options, ct);
-            return Result<Uri>.Ok(blobClient.Uri);
+            await blobClient.UploadAsync(content, ct);
+            return Result<BlobClient>.Ok(blobClient);
         }
         catch (Exception ex)
         {
-            return Result<Uri>.Fail(ex);
+            return Result<BlobClient>.Fail(ex);
         }
     }
 
