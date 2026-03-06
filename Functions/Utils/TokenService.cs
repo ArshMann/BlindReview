@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Functions.HTTP;
 using Microsoft.IdentityModel.Tokens;
+using static Functions.HTTP.Handlers;
 
 namespace Functions.Utils;
 
@@ -11,6 +13,7 @@ public class TokenService
         Environment.GetEnvironmentVariable("JwtSecret") ?? "your_super_secret_key_at_least_32_chars";
 
     private readonly string _issuer = Environment.GetEnvironmentVariable("JwtIssuer") ?? "http://localhost:7071";
+    public Functions.Models.User? _caller;
 
     public string CreateToken(Models.User user)
     {
@@ -33,17 +36,25 @@ public class TokenService
         var handler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_secret);
         var principal = handler.ValidateToken(token,
-        new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = true,
-            ValidIssuer = _issuer,
-            ValidateAudience = true,
-            ValidAudience = _issuer,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        }, out _);
+            new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = _issuer,
+                ValidateAudience = true,
+                ValidAudience = _issuer,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+        if (_caller == null)
+            _caller = new Functions.Models.User
+            {
+                id = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     throw new NullReferenceException("Id (sub) is null or empty in token"),
+                // email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
+                //        throw new NullReferenceException("Email is null or empty in token"),
+            };
         return principal;
     }
 }

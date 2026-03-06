@@ -70,9 +70,8 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         HttpRequestData req,
         string id)
     {
-        var result = await req.VerifyCaller(tokenService)
-            .ThenAsync(user =>
-                cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(user.id)));
+        var userid = tokenService._caller;
+        var result = await cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(userid?.id));
         if (!result.isSuccess)
         {
             return await ErrorResponse(result.error, req);
