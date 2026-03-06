@@ -2,16 +2,19 @@ using Functions.Database;
 using Functions.Storage;
 using Functions.HTTP;
 using Functions.Models;
+using Functions.Utils;
+using static Functions.HTTP.Handlers;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, TokenService tokenService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
 
     [Function("UploadFile")]
     public async Task<HttpResponseData> UploadFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
+        HttpRequestData req)
     {
         var file = req.Body;
 
@@ -32,24 +35,24 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
                 cost = 1 // Todo figure out what the cost of things should be  
             };
             var cosmosItem = await cosmos.CreateItem("blind-review", "reviewables", reviewable);
-            return await Handlers.JsonResponse(cosmosItem.value, HttpStatusCode.Created, req);
-
+            return await JsonResponse(cosmosItem.value, HttpStatusCode.Created, req);
         }
 
         logger.LogError(blobResult.error, "Upload failed");
-        return await Handlers.ErrorResponse(blobResult.error, req);
+        return await ErrorResponse(blobResult.error, req);
     }
 
     [Function("DownloadFile")]
     public async Task<HttpResponseData> DownloadFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{fileName}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{fileName}")]
+        HttpRequestData req,
         string fileName)
     {
         var result = await blobService.DownloadAsync(_containerName, fileName);
 
         if (!result.isSuccess)
         {
-            return await Handlers.ErrorResponse(result.error, req, logger);
+            return await ErrorResponse(result.error, req, logger);
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
@@ -61,9 +64,26 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         return response;
     }
 
+    [Function("GetReviewable")]
+    public async Task<HttpResponseData> GetReviewable(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "reviewable/{id}")]
+        HttpRequestData req,
+        string id)
+    {
+        var userid = tokenService._caller;
+        var result = await cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(userid?.id));
+        if (!result.isSuccess)
+        {
+            return await ErrorResponse(result.error, req);
+        }
+
+        return await JsonResponse(result.value, HttpStatusCode.Created, req);
+    }
+
     [Function("DeleteFile")]
     public async Task<HttpResponseData> DeleteFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "file/{fileName}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "file/{fileName}")]
+        HttpRequestData req,
         string fileName)
     {
         var result = await blobService.DeleteAsync(_containerName, fileName);
@@ -71,9 +91,9 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         if (result.isSuccess)
         {
             var successData = new { Message = result.value ? "Deleted successfully." : "File not found." };
-            return await Handlers.JsonResponse(successData, HttpStatusCode.OK, req);
+            return await JsonResponse(successData, HttpStatusCode.OK, req);
         }
 
-        return await Handlers.ErrorResponse(result.error, req);
+        return await ErrorResponse(result.error, req);
     }
 }

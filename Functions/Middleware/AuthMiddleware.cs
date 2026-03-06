@@ -1,13 +1,18 @@
 using System.Security.Claims;
 using Functions.Utils;
 using Microsoft.Azure.Functions.Worker.Middleware;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Functions.Middleware;
 
-public class AuthMiddleware(TokenService tokenService) : IFunctionsWorkerMiddleware
+public class AuthMiddleware() : IFunctionsWorkerMiddleware
 {
+    
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
+        var tokenService =
+            context.InstanceServices.GetRequiredService<TokenService>();
+ 
         var functionName = context.FunctionDefinition.Name;
         if (functionName == "Login" || functionName == "CreateUser")
         {

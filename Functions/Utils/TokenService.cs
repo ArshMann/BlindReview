@@ -1,36 +1,31 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Functions.HTTP;
 using Microsoft.IdentityModel.Tokens;
+using static Functions.HTTP.Handlers;
 
 namespace Functions.Utils;
 
 public class TokenService
 {
-    private readonly string _secret = Environment.GetEnvironmentVariable("JwtSecret") ?? "your_super_secret_key_at_least_32_chars";
+    private readonly string _secret =
+        Environment.GetEnvironmentVariable("JwtSecret") ?? "your_super_secret_key_at_least_32_chars";
+
     private readonly string _issuer = Environment.GetEnvironmentVariable("JwtIssuer") ?? "http://localhost:7071";
+    public Functions.Models.User? _caller;
 
     public string CreateToken(Models.User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.id),
-            new Claim(JwtRegisteredClaimNames.Email, user.email),
-            new Claim("role", user.role),
-            new Claim("credits", user.credits.ToString())
+            new Claim(JwtRegisteredClaimNames.Sub, user.id), new Claim(JwtRegisteredClaimNames.Email, user.email),
+            new Claim("role", user.role), new Claim("credits", user.credits.ToString())
         };
-
-        var token = new JwtSecurityToken(
-            issuer: _issuer,
-            audience: _issuer,
-            claims: claims,
-            expires: DateTime.Now.AddDays(7),
-            signingCredentials: creds
-        );
-
+        var token = new JwtSecurityToken(issuer: _issuer, audience: _issuer, claims: claims,
+            expires: DateTime.Now.AddDays(7), signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
@@ -38,13 +33,10 @@ public class TokenService
     public ClaimsPrincipal? ValidateToken(string token)
     {
         if (string.IsNullOrEmpty(token)) return null;
-
         var handler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_secret);
-
-        try
-        {
-            var principal = handler.ValidateToken(token, new TokenValidationParameters
+        var principal = handler.ValidateToken(token,
+            new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -55,12 +47,14 @@ public class TokenService
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out _);
-
-            return principal;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        if (_caller == null)
+            _caller = new Functions.Models.User
+            {
+                id = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     throw new NullReferenceException("Id (sub) is null or empty in token"),
+                // email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
+                //        throw new NullReferenceException("Email is null or empty in token"),
+            };
+        return principal;
     }
 }

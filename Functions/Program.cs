@@ -12,7 +12,7 @@ var host = new HostBuilder()
     })
     .ConfigureServices(services =>
     {
-        services.AddSingleton<TokenService>();
+        services.AddScoped<TokenService>();
         services.AddApplicationInsightsTelemetryWorkerService();
         services.AddSingleton<ICosmos, Cosmos>();
         services.AddSingleton<IBlobService, AzureBlobService>();
