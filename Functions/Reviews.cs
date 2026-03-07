@@ -1,8 +1,10 @@
+using Azure.Storage.Blobs;
 using Functions.Database;
 using Functions.Storage;
 using Functions.HTTP;
 using Functions.Models;
 using Functions.Utils;
+using Microsoft.AspNetCore.SignalR;
 using static Functions.HTTP.Handlers;
 
 namespace Functions;
@@ -14,42 +16,31 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     [Function("UploadFile")]
     public async Task<HttpResponseData> UploadFile(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
+        FunctionContext context,
         HttpRequestData req)
     {
         var file = req.Body;
+        var fileName = Guid.NewGuid().ToString();
 
-        string fileName = Guid.NewGuid().ToString();
-
-        var blobResult = await blobService.UploadAsync(_containerName, fileName, file);
-
-        if (blobResult.isSuccess)
+        var program = await context.GetUserId().Then(userId => Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId))).ThenAsync(async prev => { var reviewable = new Reviewable() { blobUrl = prev.Item1.Result.value.Uri.AbsoluteUri, createdAt = DateTime.UtcNow, id = fileName, type = (await (await prev.Item1).value.GetPropertiesAsync()).Value.ContentType, name = fileName, userId = prev.Item2, cost = 1 }; return await cosmos.CreateItem("blind-review", "reviewables", reviewable); });
+        if (program.isSuccess)
         {
-            var reviewable = new Reviewable()
-            {
-                blobUrl = blobResult.value.Uri.AbsoluteUri,
-                createdAt = DateTime.UtcNow,
-                id = fileName,
-                type = (await blobResult.value.GetPropertiesAsync()).Value.ContentType,
-                name = fileName,
-                userId = "123", // TODO THIS GOTTA BE FROM THE USER CREATING IT (in order to keep the seperation/anonymitiy of different users)
-                cost = 1 // Todo figure out what the cost of things should be  
-            };
-            var cosmosItem = await cosmos.CreateItem("blind-review", "reviewables", reviewable);
-            return await JsonResponse(cosmosItem.value, HttpStatusCode.Created, req);
+            return await JsonResponse(program.value, HttpStatusCode.Created, req);
         }
 
-        logger.LogError(blobResult.error, "Upload failed");
-        return await ErrorResponse(blobResult.error, req);
+        logger.LogError(program.error, "Upload failed");
+        return await ErrorResponse(program.error, req);
     }
 
     [Function("DownloadFile")]
     public async Task<HttpResponseData> DownloadFile(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{fileName}")]
+        FunctionContext context,
         HttpRequestData req,
         string fileName)
     {
-        var result = await blobService.DownloadAsync(_containerName, fileName);
-
+        var result = await context.GetUserId().ThenAsync(_ => blobService.DownloadAsync(_containerName, fileName));
+        
         if (!result.isSuccess)
         {
             return await ErrorResponse(result.error, req, logger);
@@ -57,7 +48,6 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", result.value.Details.ContentType);
-
         await using var blobStream = result.value.Content;
         await blobStream.CopyToAsync(response.Body);
 
@@ -67,11 +57,12 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     [Function("GetReviewable")]
     public async Task<HttpResponseData> GetReviewable(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "reviewable/{id}")]
+        FunctionContext context,
         HttpRequestData req,
         string id)
     {
-        var userid = tokenService._caller;
-        var result = await cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(userid?.id));
+        var result = await context.GetUserId().ThenAsync(userId =>
+            cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(userId)));
         if (!result.isSuccess)
         {
             return await ErrorResponse(result.error, req);

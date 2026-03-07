@@ -23,11 +23,22 @@ public class AuthMiddleware() : IFunctionsWorkerMiddleware
         var reqData = await context.GetHttpRequestDataAsync();
         var authHeader = reqData?.Headers.TryGetValues("Authorization", out var values) == true
                          ? values.FirstOrDefault() : null;
-
+        
         if (authHeader != null && authHeader.StartsWith("Bearer "))
         {
             var token = authHeader.Substring(7);
-            var principal = tokenService.ValidateToken(token);
+            ClaimsPrincipal? principal;
+            try
+            {
+                principal = tokenService.ValidateToken(token);
+            }
+            catch (Exception)
+            {
+                var response = reqData!.CreateResponse(HttpStatusCode.Unauthorized);
+                await response.WriteAsJsonAsync(new { message = "Invalid or expired token", code = nameof(HttpStatusCode.Unauthorized) });
+                context.GetInvocationResult().Value = response;
+                return;
+            }
 
             if (principal != null)
             {
@@ -37,8 +48,8 @@ public class AuthMiddleware() : IFunctionsWorkerMiddleware
                 await next(context);
                 return;
             }
+           
         }
-
         await next(context);
     }
 }

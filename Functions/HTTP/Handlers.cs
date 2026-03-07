@@ -1,5 +1,6 @@
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Functions.Models;
 using Functions.Utils;
 using Microsoft.AspNetCore.Http;
@@ -55,26 +56,10 @@ public static class Handlers
         return res;
     }
 
-    public static Result<User> VerifyCaller(this HttpRequestData req, TokenService tokenService)
-    {
-        try
-        {
-            req.Headers.TryGetValues("Authorization", out var tokenOut);
-            var token = tokenOut?.FirstOrDefault();
-            var validatedToken =
-                tokenService.ValidateToken(token ?? throw new InvalidOperationException("Token is null"));
-            if (validatedToken == null) throw new NullReferenceException("Token is null");
-            return Result<User>.Ok(new User
-            {
-                id = validatedToken.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
-                     throw new NullReferenceException("Email is null or empty in token"),
-                email = validatedToken.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
-                        throw new NullReferenceException("Email is null or empty in token"),
-            });
-        }
-        catch (Exception ex)
-        {
-            return Result<User>.Fail(ex);
-        }
-    }
+    public static Result<string> GetUserId(this FunctionContext context) =>
+        context.Items.TryGetValue("UserId", out var value)
+            ? string.IsNullOrEmpty(value.ToString())
+                ? Result<string>.Fail(new Exception("UserId is null or empty"))
+                : Result<string>.Ok(value.ToString()!)
+            : Result<string>.Fail(new Exception("UserId is null or empty"));
 }
