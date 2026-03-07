@@ -11,18 +11,18 @@ namespace Functions.HTTP;
 
 public static class Handlers
 {
-    public static async Task<T> RequestBody<T>(HttpRequestData request)
+    public static async Task<T> RequestBody<T>(this HttpRequestData request)
     {
         var body = await new StreamReader(request.Body).ReadToEndAsync();
         return JsonSerializer.Deserialize<T>(body) ?? throw new NullReferenceException("Request converted to null");
     }
-    public static async Task<HttpResponseData> JsonResponse<T>(T result, HttpStatusCode code, HttpRequestData req)
+    public static async Task<HttpResponseData> JsonResponse<T>(this HttpRequestData req, T result, HttpStatusCode code)
     {
         var res = req.CreateResponse(code);
         await res.WriteAsJsonAsync(result);
         return res;
     }
-    public static async Task<Result<T>> RequestBodyResult<T>(HttpRequestData request)
+    public static async Task<Result<T>> RequestBodyResult<T>(this HttpRequestData request)
     {
         try
         {
@@ -42,7 +42,7 @@ public static class Handlers
         }
     }
     // Don't think we'll need different error types 
-    public static async Task<HttpResponseData> ErrorResponse(Exception error, HttpRequestData req, ILogger? logger = null)
+    public static async Task<HttpResponseData> ErrorResponse(this HttpRequestData req, Exception error, ILogger? logger = null)
     {
         var res = req.CreateResponse(HttpStatusCode.BadRequest);
         var errorObject = new Error()

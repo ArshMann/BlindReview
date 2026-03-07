@@ -20,7 +20,8 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     {
         var file = req.Body;
         var fileName = Guid.NewGuid().ToString();
-
+        // I know this is really awful I just think it looks cool all on one line lol 
+        // ToDo make it at least readable
         var program = await context.GetUserId()
             .Then(userId =>
                 Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId)))
@@ -42,11 +43,11 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
             });
         if (program.isSuccess)
         {
-            return await JsonResponse(program.value, HttpStatusCode.Created, req);
+            return await req.JsonResponse(program.value, HttpStatusCode.Created);
         }
 
         logger.LogError(program.error, "Upload failed");
-        return await ErrorResponse(program.error, req);
+        return await req.ErrorResponse(program.error);
     }
 
     [Function("DownloadFile")]
@@ -60,7 +61,7 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         if (!result.isSuccess)
         {
-            return await ErrorResponse(result.error, req, logger);
+            return await req.ErrorResponse(result.error, logger);
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
@@ -82,10 +83,10 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
             cosmos.GetItem<Reviewable>("blind-review", "reviewables", id, new PartitionKey(userId)));
         if (!result.isSuccess)
         {
-            return await ErrorResponse(result.error, req);
+            return await req.ErrorResponse(result.error);
         }
 
-        return await JsonResponse(result.value, HttpStatusCode.Created, req);
+        return await req.JsonResponse(result.value, HttpStatusCode.Created);
     }
     [Function("ListReviewables")]
     public async Task<HttpResponseData> ListReviewables(
@@ -106,7 +107,7 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         );
         if (!result.isSuccess)
         {
-            return await ErrorResponse(result.error, req);
+            return await req.ErrorResponse(result.error);
         }
         
         var response = new
@@ -116,7 +117,27 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
             hasMore = !string.IsNullOrEmpty(result.value.ContinuationToken)
         };
 
-        return await JsonResponse(response, HttpStatusCode.OK, req);
+        return await req.JsonResponse(response, HttpStatusCode.OK);
+    }
+    [Function("AddReviewableComment")]
+    public async Task<HttpResponseData> AddReviewableComment(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reviewable/comment")]
+        FunctionContext context,
+        HttpRequestData req,
+        string id)
+    {
+        // TODO start here
+        // This is where comments on a reviewable will happen,
+        // this request should update the reviewable with the comment and add a cost point to the person reviewing,
+        // be mindful about how we can keep it anonymous  
+        var result = await req.RequestBodyResult<Comment>();
+        
+        if (!result.isSuccess)
+        {
+            return await req.ErrorResponse(result.error);
+        }
+        
+        return await req.JsonResponse(result.value, HttpStatusCode.OK);
     } 
 
     [Function("DeleteFile")]
@@ -130,9 +151,9 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         if (result.isSuccess)
         {
             var successData = new { Message = result.value ? "Deleted successfully." : "File not found." };
-            return await JsonResponse(successData, HttpStatusCode.OK, req);
+            return await req.JsonResponse(successData, HttpStatusCode.OK);
         }
 
-        return await ErrorResponse(result.error, req);
+        return await req.ErrorResponse(result.error);
     }
 }
