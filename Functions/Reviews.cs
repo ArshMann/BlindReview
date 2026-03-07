@@ -4,17 +4,16 @@ using Functions.Storage;
 using Functions.HTTP;
 using Functions.Models;
 using Functions.Utils;
-using Microsoft.AspNetCore.SignalR;
 using static Functions.HTTP.Handlers;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, TokenService tokenService)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
 
-    [Function("UploadFile")]
-    public async Task<HttpResponseData> UploadFile(
+    [Function("UploadReviewable")]
+    public async Task<HttpResponseData> UploadReviewable(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
         FunctionContext context,
         HttpRequestData req)
@@ -22,7 +21,25 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         var file = req.Body;
         var fileName = Guid.NewGuid().ToString();
 
-        var program = await context.GetUserId().Then(userId => Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId))).ThenAsync(async prev => { var reviewable = new Reviewable() { blobUrl = prev.Item1.Result.value.Uri.AbsoluteUri, createdAt = DateTime.UtcNow, id = fileName, type = (await (await prev.Item1).value.GetPropertiesAsync()).Value.ContentType, name = fileName, userId = prev.Item2, cost = 1 }; return await cosmos.CreateItem("blind-review", "reviewables", reviewable); });
+        var program = await context.GetUserId()
+            .Then(userId =>
+                Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId)))
+            .ThenAsync(async prev =>
+            {
+                var reviewable = new Reviewable()
+                {
+                    blobUrl = prev.Item1.Result.value.Uri.AbsoluteUri,
+                    createdAt = DateTime.UtcNow,
+                    id = fileName,
+                    type = (await (await prev.Item1).value.GetPropertiesAsync()).Value.ContentType,
+                    name = fileName,
+                    userId = prev.Item2,
+                    cost = 1
+                };
+                return await cosmos.CreateItem("blind-review",
+                    "reviewables",
+                    reviewable);
+            });
         if (program.isSuccess)
         {
             return await JsonResponse(program.value, HttpStatusCode.Created, req);
@@ -40,7 +57,7 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         string fileName)
     {
         var result = await context.GetUserId().ThenAsync(_ => blobService.DownloadAsync(_containerName, fileName));
-        
+
         if (!result.isSuccess)
         {
             return await ErrorResponse(result.error, req, logger);
@@ -70,6 +87,37 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         return await JsonResponse(result.value, HttpStatusCode.Created, req);
     }
+    [Function("ListReviewables")]
+    public async Task<HttpResponseData> ListReviewables(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "reviewable")]
+        FunctionContext context,
+        HttpRequestData req,
+        string id)
+    {
+        var contToken = req.GetContinuationToken().value;
+        var pageSize = req.GetPageSize().value;
+
+        var result = await cosmos.QueryItemsPaged<Reviewable>(
+            "blind-review",
+            "reviewables",
+            q => q,
+            continuationToken: contToken,
+            pageSize: pageSize
+        );
+        if (!result.isSuccess)
+        {
+            return await ErrorResponse(result.error, req);
+        }
+        
+        var response = new
+        {
+            items = result.value.ToList(),
+            continuationToken = result.value.ContinuationToken,
+            hasMore = !string.IsNullOrEmpty(result.value.ContinuationToken)
+        };
+
+        return await JsonResponse(response, HttpStatusCode.OK, req);
+    } 
 
     [Function("DeleteFile")]
     public async Task<HttpResponseData> DeleteFile(

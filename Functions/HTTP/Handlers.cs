@@ -55,11 +55,36 @@ public static class Handlers
         await res.WriteAsJsonAsync(errorObject);
         return res;
     }
-
     public static Result<string> GetUserId(this FunctionContext context) =>
         context.Items.TryGetValue("UserId", out var value)
             ? string.IsNullOrEmpty(value.ToString())
                 ? Result<string>.Fail(new Exception("UserId is null or empty"))
                 : Result<string>.Ok(value.ToString()!)
             : Result<string>.Fail(new Exception("UserId is null or empty"));
+
+    public static  Result<string?> GetContinuationToken(this HttpRequestData req)
+    {
+        try
+        {
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            return Result<string?>.Ok(query["continuationToken"]);
+        }
+        catch (Exception ex)
+        {
+            return Result<string?>.Fail(ex.Message);
+        }
+    }
+    
+    public static Result<int> GetPageSize(this HttpRequestData req)
+    {
+        try
+        {
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            return Result<int>.Ok(int.TryParse(query["pageSize"], out var size) ? size : 10);
+        }
+        catch (Exception ex)
+        {
+            return Result<int>.Fail(ex.Message);
+        }
+    }
 }

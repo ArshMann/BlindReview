@@ -15,7 +15,7 @@ public interface ICosmos
         T item,
         PartitionKey? partitionKey = null,
         ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
+        CancellationToken cancellationToken = default);
     
     public Task<Result<T>> GetItem<T>(
         string databaseName,
@@ -23,7 +23,7 @@ public interface ICosmos
         string id,
         PartitionKey? partitionKey = null,
         ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
+        CancellationToken cancellationToken = default);
 
     
     public Task<Result<T>> PatchItem<T>(
@@ -32,13 +32,21 @@ public interface ICosmos
         T item,
         PartitionKey? partitionKey = null,
         ItemRequestOptions? requestOptions = null,
-        CancellationToken cancellationToken = default(CancellationToken));
+        CancellationToken cancellationToken = default);
 
     public Task<Result<List<T>>> QueryItemFixed<T>(
         string databaseName,
         string containerName,
         Func<IQueryable<T>, IQueryable<T>> query,
         string? continuationToken = null,
+        QueryRequestOptions? requestOptions = null
+    ); 
+    public Task<Result<FeedResponse<T>>> QueryItemsPaged<T>(
+        string databaseName,
+        string containerName,
+        Func<IQueryable<T>, IQueryable<T>> query,
+        string? continuationToken = null,
+        int pageSize = 10,
         QueryRequestOptions? requestOptions = null
     );
 }

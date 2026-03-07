@@ -111,4 +111,40 @@ public class Cosmos: ICosmos
             return Result<List<T>>.Fail(ex);
         }
     }
+    public async Task<Result<FeedResponse<T>>> QueryItemsPaged<T>(
+        string databaseName,
+        string containerName,
+        Func<IQueryable<T>, IQueryable<T>> query,
+        string? continuationToken = null,
+        int pageSize = 10,
+        QueryRequestOptions? requestOptions = null
+    )
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+            var response = container.GetItemLinqQueryable<T>(
+                continuationToken: continuationToken,
+                requestOptions: new QueryRequestOptions 
+                { 
+                    MaxItemCount = pageSize 
+                }
+            );
+        
+            var result = query(response.AsQueryable());
+            using var iterator = result.ToFeedIterator();
+        
+            if (iterator.HasMoreResults)
+            {
+                var page = await iterator.ReadNextAsync();
+                return Result<FeedResponse<T>>.Ok(page);
+            }
+        
+            return Result<FeedResponse<T>>.Fail(new Exception("No results"));
+        }
+        catch (Exception ex)
+        {
+            return Result<FeedResponse<T>>.Fail(ex);
+        }
+    }
 }
