@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace Functions.Models;
 
 public record Reviewable
 {
     public string? id { get; init; }
+    [JsonIgnore]
     public string userId { get; set; } = null!;
     public string? name { get; init; }
     public string? type { get; init; } // could be enum typeish thing
@@ -10,5 +13,5 @@ public record Reviewable
     public DateTime? createdAt { get; init; }
     public DateTime? updatedAt { get; init; }
     public int cost { get; init; } // maybe like projects would cost more in reviews than something like a resume
-    public List<string> comments = [];
+    public List<Users> reviewedByUsers { get; init; } = [];
 }

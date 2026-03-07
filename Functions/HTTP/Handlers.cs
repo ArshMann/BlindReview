@@ -1,5 +1,6 @@
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Functions.Models;
 using Functions.Utils;
 using Microsoft.AspNetCore.Http;
@@ -10,18 +11,18 @@ namespace Functions.HTTP;
 
 public static class Handlers
 {
-    public static async Task<T> RequestBody<T>(HttpRequestData request)
+    public static async Task<T> RequestBody<T>(this HttpRequestData request)
     {
         var body = await new StreamReader(request.Body).ReadToEndAsync();
         return JsonSerializer.Deserialize<T>(body) ?? throw new NullReferenceException("Request converted to null");
     }
-    public static async Task<HttpResponseData> JsonResponse<T>(T result, HttpStatusCode code, HttpRequestData req)
+    public static async Task<HttpResponseData> JsonResponse<T>(this HttpRequestData req, T result, HttpStatusCode code)
     {
         var res = req.CreateResponse(code);
         await res.WriteAsJsonAsync(result);
         return res;
     }
-    public static async Task<Result<T>> RequestBodyResult<T>(HttpRequestData request)
+    public static async Task<Result<T>> RequestBodyResult<T>(this HttpRequestData request)
     {
         try
         {
@@ -41,7 +42,7 @@ public static class Handlers
         }
     }
     // Don't think we'll need different error types 
-    public static async Task<HttpResponseData> ErrorResponse(Exception error, HttpRequestData req, ILogger? logger = null)
+    public static async Task<HttpResponseData> ErrorResponse(this HttpRequestData req, Exception error, ILogger? logger = null)
     {
         var res = req.CreateResponse(HttpStatusCode.BadRequest);
         var errorObject = new Error()
@@ -54,27 +55,36 @@ public static class Handlers
         await res.WriteAsJsonAsync(errorObject);
         return res;
     }
+    public static Result<string> GetUserId(this FunctionContext context) =>
+        context.Items.TryGetValue("UserId", out var value)
+            ? string.IsNullOrEmpty(value.ToString())
+                ? Result<string>.Fail(new Exception("UserId is null or empty"))
+                : Result<string>.Ok(value.ToString()!)
+            : Result<string>.Fail(new Exception("UserId is null or empty"));
 
-    public static Result<User> VerifyCaller(this HttpRequestData req, TokenService tokenService)
+    public static  Result<string?> GetContinuationToken(this HttpRequestData req)
     {
         try
         {
-            req.Headers.TryGetValues("Authorization", out var tokenOut);
-            var token = tokenOut?.FirstOrDefault();
-            var validatedToken =
-                tokenService.ValidateToken(token ?? throw new InvalidOperationException("Token is null"));
-            if (validatedToken == null) throw new NullReferenceException("Token is null");
-            return Result<User>.Ok(new User
-            {
-                id = validatedToken.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
-                     throw new NullReferenceException("Email is null or empty in token"),
-                email = validatedToken.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
-                        throw new NullReferenceException("Email is null or empty in token"),
-            });
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            return Result<string?>.Ok(query["continuationToken"]);
         }
         catch (Exception ex)
         {
-            return Result<User>.Fail(ex);
+            return Result<string?>.Fail(ex.Message);
+        }
+    }
+    
+    public static Result<int> GetPageSize(this HttpRequestData req)
+    {
+        try
+        {
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            return Result<int>.Ok(int.TryParse(query["pageSize"], out var size) ? size : 10);
+        }
+        catch (Exception ex)
+        {
+            return Result<int>.Fail(ex.Message);
         }
     }
 }

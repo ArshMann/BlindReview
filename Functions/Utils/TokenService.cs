@@ -13,7 +13,6 @@ public class TokenService
         Environment.GetEnvironmentVariable("JwtSecret") ?? "your_super_secret_key_at_least_32_chars";
 
     private readonly string _issuer = Environment.GetEnvironmentVariable("JwtIssuer") ?? "http://localhost:7071";
-    public Functions.Models.User? _caller;
 
     public string CreateToken(Models.User user)
     {
@@ -47,14 +46,7 @@ public class TokenService
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out _);
-        if (_caller == null)
-            _caller = new Functions.Models.User
-            {
-                id = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                     throw new NullReferenceException("Id (sub) is null or empty in token"),
-                // email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value ??
-                //        throw new NullReferenceException("Email is null or empty in token"),
-            };
+       
         return principal;
     }
 }
