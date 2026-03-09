@@ -14,14 +14,20 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
     [Function("UploadReviewable")]
     public async Task<HttpResponseData> UploadReviewable(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
         FunctionContext context,
-        HttpRequestData req)
+            HttpRequestData req)
     {
         var file = req.Body;
-        var fileName = Guid.NewGuid().ToString();
-        // I know this is really awful I just think it looks cool all on one line lol 
-        // ToDo make it at least readable
+        req.Headers.TryGetValues("X-File-Name", out var fileNameValues);
+        var originalName = fileNameValues?.FirstOrDefault() ?? "unknown_file";
+
+        req.Headers.TryGetValues("Content-Type", out var contentTypeValues);
+        var realContentType = contentTypeValues?.FirstOrDefault() ?? "application/octet-stream";
+
+        var extension = Path.GetExtension(originalName);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+
         var program = await context.GetUserId()
             .Then(userId =>
                 Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId)))
@@ -32,7 +38,7 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
                     blobUrl = prev.Item1.Result.value.Uri.AbsoluteUri,
                     createdAt = DateTime.UtcNow,
                     id = fileName,
-                    type = (await (await prev.Item1).value.GetPropertiesAsync()).Value.ContentType,
+                    type = realContentType,
                     name = fileName,
                     userId = prev.Item2,
                     cost = 1
@@ -41,6 +47,7 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
                     "reviewables",
                     reviewable);
             });
+
         if (program.isSuccess)
         {
             return await req.JsonResponse(program.value, HttpStatusCode.Created);
@@ -49,13 +56,12 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         logger.LogError(program.error, "Upload failed");
         return await req.ErrorResponse(program.error);
     }
-
     [Function("DownloadFile")]
     public async Task<HttpResponseData> DownloadFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{fileName}")]
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{fileName}")]
         FunctionContext context,
-        HttpRequestData req,
-        string fileName)
+            HttpRequestData req,
+            string fileName)
     {
         var result = await context.GetUserId().ThenAsync(_ => blobService.DownloadAsync(_containerName, fileName));
 
@@ -65,7 +71,21 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         }
 
         var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", result.value.Details.ContentType);
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".txt" => "text/plain",
+            _ => result.value.Details.ContentType
+        };
+
+        response.Headers.Add("Content-Type", contentType);
+
+        response.Headers.Add("Content-Disposition", $"inline; filename=\"{fileName}\"");
+
         await using var blobStream = result.value.Content;
         await blobStream.CopyToAsync(response.Body);
 

@@ -28,15 +28,20 @@ export interface SubmissionForm {
   file: File | null;
 }
 
-export interface Submission {
+export interface Reviewable {
   id: string;
-  title: string;
-  subject: string;
-  submittedDate: string;
-  deadline: string;
-  reviewCount: number;
-  status: SubmissionStatus;
-  averageScore?: number;
+  name: string;
+  blobUrl: string;
+  type: string;
+  userId: string;
+  createdAt: string;
+  cost: number;
+}
+
+export interface ListReviewablesResponse {
+  items: Reviewable[];
+  continuationToken: string | null;
+  hasMore: boolean;
 }
 
 export interface ReviewAssignment {

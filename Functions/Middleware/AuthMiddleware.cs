@@ -50,7 +50,12 @@ public class AuthMiddleware() : IFunctionsWorkerMiddleware
             if (principal != null)
             {
                 var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var role = principal.FindFirst("role")?.Value;
+                var credits = principal.FindFirst("credits")?.Value;
+                
                 context.Items["UserId"] = userId;
+                context.Items["UserRole"] = role;
+                context.Items["UserCredits"] = credits;
 
                 await next(context);
                 return;

@@ -4,12 +4,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 import Home from "./pages/Home";
-import ApiStatus from "./pages/ApiStatus";
-import SubmitPaper from "./pages/SubmitPaper";
 import MySubmissions from "./pages/MySubmissions";
 import ReviewAssignments from "./pages/ReviewAssignments";
-import SubmitReview from "./pages/SubmitReview";
-import Dashboard from "./pages/Dashboard";
 import ProfileSettings from "./pages/ProfileSettings";
 import "./App.css";
 
@@ -31,15 +27,11 @@ function App() {
 
             <nav style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
                 <Link to="/">Home</Link>
-                <Link to="/status">API Status</Link>
 
                 {isAuthenticated ? (
                     <>
-                        <Link to="/dashboard">Dashboard</Link>
-                        <Link to="/submit-paper">Submit Paper</Link>
                         <Link to="/my-submissions">My Submissions</Link>
                         <Link to="/review-assignments">Review Assignments</Link>
-                        <Link to="/submit-review">Submit Review</Link>
                         <Link to="/profile">Profile Settings</Link>
                     </>
                 ) : (
@@ -53,16 +45,12 @@ function App() {
             <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
-                <Route path="/status" element={<ApiStatus />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
                 {/* Protected Routes */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/submit-paper" element={<ProtectedRoute><SubmitPaper /></ProtectedRoute>} />
                 <Route path="/my-submissions" element={<ProtectedRoute><MySubmissions /></ProtectedRoute>} />
                 <Route path="/review-assignments" element={<ProtectedRoute><ReviewAssignments /></ProtectedRoute>} />
-                <Route path="/submit-review" element={<ProtectedRoute><SubmitReview /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
             </Routes>
         </div>
