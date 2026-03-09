@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { reviewableService } from '@/services/reviewableService';
+import './ui/dashboardTheme.css';
 
 interface UploadSubmissionProps {
     onUploadSuccess: () => void;
@@ -9,12 +10,16 @@ export default function UploadSubmission({ onUploadSuccess }: UploadSubmissionPr
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-            setError(null);
-        }
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0] ?? null;
+        setFile(selectedFile);
+        setError(null);
+    };
+
+    const openFilePicker = () => {
+        fileInputRef.current?.click();
     };
 
     const handleUpload = async () => {
@@ -26,6 +31,10 @@ export default function UploadSubmission({ onUploadSuccess }: UploadSubmissionPr
             await reviewableService.uploadReviewable(file);
             setFile(null);
 
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
             onUploadSuccess();
         } catch (err) {
             setError((err as Error).message || 'Failed to upload file');
@@ -35,21 +44,45 @@ export default function UploadSubmission({ onUploadSuccess }: UploadSubmissionPr
     };
 
     return (
-        <div style={{ padding: '1.5rem', border: '1px solid #dee2e6', borderRadius: '8px', marginTop: '2rem' }}>
-            <h2>Upload New File</h2>
+        <div className="br-upload-shell">
+            <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                disabled={isUploading}
+                className="br-hidden-file-input"
+                aria-label="Choose file to upload"
+            />
 
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
-                <input type="file" onChange={handleFileChange} disabled={isUploading} />
+            <div className="br-upload-controls">
                 <button
+                    type="button"
+                    onClick={openFilePicker}
+                    disabled={isUploading}
+                    className="br-btn-secondary"
+                >
+                    Choose File
+                </button>
+
+                <span className="br-upload-filename" aria-live="polite">
+                    {file ? file.name : 'No file selected'}
+                </span>
+
+                <button
+                    type="button"
                     onClick={handleUpload}
                     disabled={!file || isUploading}
-                    style={{ padding: '0.5rem 1rem', cursor: file && !isUploading ? 'pointer' : 'not-allowed' }}
+                    className="br-btn-primary br-upload-btn"
                 >
                     {isUploading ? 'Uploading...' : 'Upload'}
                 </button>
             </div>
 
-            {error && <p style={{ color: 'red', marginTop: '1rem' }}>✗ {error}</p>}
+            {error && (
+                <p className="br-state-error" role="alert">
+                    {error}
+                </p>
+            )}
         </div>
     );
 }
