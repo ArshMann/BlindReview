@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { type Reviewable } from '@/types';
 import { reviewableService } from '../services/reviewableService';
+import ScrollableList from './ui/ScrollableList';
+import SubmissionRow from './ui/SubmissionRow';
+import './ui/dashboardTheme.css';
 
 interface SubmissionsListProps {
     refreshTrigger: number;
@@ -15,6 +18,7 @@ export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps
         const fetchReviewables = async () => {
             try {
                 setIsLoading(true);
+                setError(null);
                 const data = await reviewableService.getReviewables();
                 setReviewables(data);
             } catch (err) {
@@ -30,12 +34,9 @@ export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps
     const handleViewFile = async (fileName: string) => {
         try {
             const blob = await reviewableService.downloadFile(fileName);
-
             const url = window.URL.createObjectURL(blob);
 
             window.open(url, '_blank');
-
-            // Clean up the URL from memory after a short delay
             setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         } catch (err) {
             console.error('Failed to view file:', err);
@@ -43,46 +44,41 @@ export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps
         }
     };
 
-    if (isLoading) return <p>Loading your files...</p>;
-    if (error) return <div style={{ color: 'red', padding: '1rem' }}>✗ {error}</div>;
-    if (reviewables.length === 0) return <p>No files found. Upload one below.</p>;
+    if (isLoading) {
+        return <p className="br-state-text">Loading your files...</p>;
+    }
+
+    if (error) {
+        return (
+            <div className="br-state-error" role="alert">
+                {error}
+            </div>
+        );
+    }
+
+    if (reviewables.length === 0) {
+        return <p className="br-state-text">No files found. Upload one below.</p>;
+    }
 
     return (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
-            <thead>
-                <tr style={{ borderBottom: '2px solid #dee2e6' }}>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Name</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Type</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem' }}>Uploaded Date</th>
-                    <th style={{ textAlign: 'center', padding: '0.75rem' }}>Action</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div className="br-submissions-shell">
+            <div className="br-submissions-columns" aria-hidden="true">
+                <span className="br-submissions-col-file">FILE</span>
+                <span className="br-submissions-col-date">UPLOADED</span>
+                <span className="br-submissions-col-action">ACTION</span>
+            </div>
+
+            <ScrollableList label="Submitted files" height={420}>
                 {reviewables.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                        <td style={{ padding: '0.75rem' }}>{item.name}</td>
-                        <td style={{ padding: '0.75rem' }}>{item.type}</td>
-                        <td style={{ padding: '0.75rem' }}>{new Date(item.createdAt).toLocaleDateString()}</td>
-                        <td style={{ textAlign: 'center', padding: '0.75rem' }}>
-
-                            <button
-                                onClick={() => handleViewFile(item.name)}
-                                style={{
-                                    color: '#007bff',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    textDecoration: 'underline',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                View File
-                            </button>
-
-                        </td>
-                    </tr>
+                    <SubmissionRow
+                        key={item.id}
+                        fileName={item.name}
+                        type={item.type}
+                        createdAt={item.createdAt}
+                        onView={() => handleViewFile(item.name)}
+                    />
                 ))}
-            </tbody>
-        </table>
+            </ScrollableList>
+        </div>
     );
 }

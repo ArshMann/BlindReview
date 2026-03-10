@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth';
 import api from '@/api/axiosInstance';
+import Navbar from '../components/ui/Navbar';
+import '../components/ui/dashboardTheme.css';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -11,20 +13,22 @@ const Register = () => {
         role: 'Student'
     });
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsSubmitting(true);
 
         try {
-            const res = await api.post('/CreateUser', formData);
-            // Add logic later if you want to show a success message or auto-login after registration
+            await api.post('/CreateUser', formData);
 
             const loginRes = await api.post('/Login', {
                 email: formData.email,
@@ -34,45 +38,117 @@ const Register = () => {
             const { Token, User } = loginRes.data;
             login(Token, User);
             navigate('/dashboard');
-
         } catch (err: any) {
             setError(err.response?.data?.message || 'Registration failed. User might already exist.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div style={styles.container}>
-            <div style={styles.card}>
-                <h2 style={styles.title}>Create Account</h2>
-                {error && <div style={styles.error}>{error}</div>}
+        <div className="br-theme-page">
+            <Navbar />
 
-                <form onSubmit={handleSubmit} style={styles.form}>
-                    <input name="name" placeholder="Full Name" onChange={handleChange} required style={styles.input} />
-                    <input name="email" type="email" placeholder="Email" onChange={handleChange} required style={styles.input} />
-                    <input name="password" type="password" placeholder="Password" onChange={handleChange} required style={styles.input} />
+            <main className="br-page-container br-auth-main">
+                <section className="br-auth-card" aria-labelledby="register-title">
+                    <div className="br-auth-brand">
+                        <span className="br-logo-badge">BR</span>
+                        <p className="br-logo-text">BlindReview</p>
+                    </div>
 
-                    <select name="role" onChange={handleChange} style={styles.input}>
-                        <option value="Student">Student</option>
-                        <option value="Reviewer">Reviewer</option>
-                    </select>
+                    <h1 id="register-title" className="br-auth-title">Create account</h1>
+                    <p className="br-auth-subtitle">Join the platform and start submitting anonymously.</p>
 
-                    <button type="submit" style={styles.button}>Register</button>
-                </form>
-                <p style={{ textAlign: 'center', marginTop: '15px' }}>
-                    Already have an account? <Link to="/login">Login</Link>
-                </p>
-            </div>
+                    {error && (
+                        <div className="br-error-banner" role="alert">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="br-auth-form">
+                        <div className="br-form-field">
+                            <label className="br-form-label" htmlFor="name">
+                                Full name
+                            </label>
+                            <input
+                                id="name"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder="Jane Doe"
+                                required
+                                disabled={isSubmitting}
+                                className="br-auth-input"
+                            />
+                        </div>
+
+                        <div className="br-form-field">
+                            <label className="br-form-label" htmlFor="email">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="you@example.com"
+                                required
+                                disabled={isSubmitting}
+                                className="br-auth-input"
+                            />
+                        </div>
+
+                        <div className="br-form-field">
+                            <label className="br-form-label" htmlFor="password">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="Create a password"
+                                required
+                                disabled={isSubmitting}
+                                className="br-auth-input"
+                            />
+                        </div>
+
+                        <div className="br-form-field">
+                            <label className="br-form-label" htmlFor="role">
+                                Role
+                            </label>
+                            <select
+                                id="role"
+                                name="role"
+                                value={formData.role}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                                className="br-auth-input"
+                            >
+                                <option value="Student">Student</option>
+                                <option value="Reviewer">Reviewer</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" disabled={isSubmitting} className="br-btn-primary br-auth-submit">
+                            {isSubmitting ? 'Creating account...' : 'Register'}
+                        </button>
+                    </form>
+
+                    <p className="br-auth-footer">
+                        Already have an account?{' '}
+                        <Link to="/login" className="br-inline-link">
+                            Login
+                        </Link>
+                    </p>
+                </section>
+            </main>
         </div>
     );
 };
 
-const styles: { [key: string]: React.CSSProperties } = {
-    container: { display: 'flex', justifyContent: 'center', marginTop: '50px' },
-    card: { padding: '30px', border: '1px solid #ddd', borderRadius: '8px', width: '100%', maxWidth: '400px' },
-    form: { display: 'flex', flexDirection: 'column', gap: '15px' },
-    input: { padding: '10px', borderRadius: '4px', border: '1px solid #ccc' },
-    button: { padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-    error: { color: 'red', marginBottom: '10px', textAlign: 'center' }
-};
-
 export default Register;
+
