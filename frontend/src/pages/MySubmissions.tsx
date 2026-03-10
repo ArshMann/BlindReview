@@ -35,7 +35,7 @@ export default function MySubmissions() {
           <section className="br-panel">
             <div className="br-section-header">
               <h2 className="br-section-title">Upload</h2>
-              <p className="br-section-subtitle">Select a file and upload it to refresh the list above.</p>
+              <p className="br-section-subtitle">Drag and drop a file or click to browse, then upload it to refresh the list above.</p>
             </div>
             <UploadSubmission onUploadSuccess={handleUploadSuccess} />
           </section>
