@@ -1,5 +1,23 @@
-import { useState, useEffect } from 'react';
-import { type AssignmentStatus, type ReviewAssignment, statusStyles } from '../types';
+import { useEffect, useState } from 'react';
+import { type AssignmentStatus, type ReviewAssignment } from '../types';
+import Navbar from '../components/ui/Navbar';
+import '../components/ui/dashboardTheme.css';
+
+const statusClassByAssignment: Record<AssignmentStatus, string> = {
+  pending: 'br-status-pending',
+  'in-progress': 'br-status-progress',
+  submitted: 'br-status-submitted',
+};
+
+const toDisplayStatus = (status: AssignmentStatus) =>
+  status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
+
+const formatDate = (isoDate: string) =>
+  new Date(isoDate).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
 export default function ReviewAssignments() {
   const [assignments, setAssignments] = useState<ReviewAssignment[]>([]);
@@ -47,126 +65,121 @@ export default function ReviewAssignments() {
       : assignments.filter((assign) => assign.status === filterStatus);
 
   const pendingCount = assignments.filter((a) => a.status === 'pending').length;
+  const inProgressCount = assignments.filter((a) => a.status === 'in-progress').length;
   const submittedCount = assignments.filter((a) => a.status === 'submitted').length;
 
-  const getStatusBadge = (status: AssignmentStatus) => {
-    const style = statusStyles.assignment[status];
-
-    return (
-      <span
-        style={{
-          padding: '0.25rem 0.75rem',
-          backgroundColor: style.bg,
-          color: style.text,
-          borderRadius: '4px',
-          fontSize: '0.875rem',
-          fontWeight: 'bold',
-        }}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
-      </span>
-    );
-  };
-
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>My Review Assignments</h1>
-      <p>Complete your assigned peer reviews. Your identity remains anonymous to authors.</p>
+    <div className="br-theme-page">
+      <Navbar />
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '2rem',
-          marginBottom: '1.5rem',
-          padding: '1rem',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px',
-        }}
-      >
-        <div>
-          <strong>Total Assignments:</strong> {assignments.length}
-        </div>
-        <div>
-          <strong>Pending:</strong> {pendingCount}
-        </div>
-        <div>
-          <strong>Submitted:</strong> {submittedCount}
-        </div>
-      </div>
+      <main className="br-page-container br-dashboard-main">
+        <header className="br-dashboard-header">
+          <h1 className="br-page-title">
+            <span className="br-title-icon" aria-hidden="true">{'\u{1F50E}'}</span>
+            Review Assignments
+          </h1>
+          <p className="br-page-subtitle">
+          </p>
+        </header>
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label htmlFor="filter-status">Filter by status: </label>
-        <select
-          id="filter-status"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          style={{ padding: '0.5rem', marginLeft: '0.5rem' }}
-        >
-          <option value="all">All</option>
-          <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
-          <option value="submitted">Submitted</option>
-        </select>
-      </div>
-
-      {isLoading ? (
-        <p>Loading your review assignments...</p>
-      ) : error ? (
-        <div style={{ padding: '1rem', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb' }}>
-          ✗ {error}
-        </div>
-      ) : filteredAssignments.length === 0 ? (
-        <div style={{ padding: '1rem', backgroundColor: '#e7e7e7' }}>
-          <p>No assignments found. Check back later for reviews to complete.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {filteredAssignments.map((assignment) => (
-            <div
-              key={assignment.id}
-              style={{
-                padding: '1rem',
-                border: '1px solid #dee2e6',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-              }}
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto auto',
-                  gap: '1rem',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>{assignment.title}</h3>
-                  <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                    Subject: <strong>{assignment.subject}</strong>
-                  </p>
-                  <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                    Deadline: <strong>{new Date(assignment.deadline).toLocaleDateString()}</strong>
-                  </p>
-                </div>
-                <div style={{ textAlign: 'center' }}>{getStatusBadge(assignment.status)}</div>
-                <a
-                  href={`/review/${assignment.id}`}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '4px',
-                    display: 'inline-block',
-                  }}
-                >
-                  {assignment.status === 'submitted' ? 'View' : 'Review'}
-                </a>
-              </div>
+        <div className="br-dashboard-stack">
+          <section className="br-panel">
+            <div className="br-section-header">
+              <h2 className="br-section-title">Assignments Overview</h2>
             </div>
-          ))}
+
+            <div className="br-stat-grid" role="list" aria-label="Assignment statistics">
+              <article className="br-stat-card" role="listitem">
+                <p className="br-stat-label">Total</p>
+                <p className="br-stat-value">{assignments.length}</p>
+              </article>
+              <article className="br-stat-card" role="listitem">
+                <p className="br-stat-label">Pending</p>
+                <p className="br-stat-value">{pendingCount}</p>
+              </article>
+              <article className="br-stat-card" role="listitem">
+                <p className="br-stat-label">In Progress</p>
+                <p className="br-stat-value">{inProgressCount}</p>
+              </article>
+              <article className="br-stat-card" role="listitem">
+                <p className="br-stat-label">Submitted</p>
+                <p className="br-stat-value">{submittedCount}</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="br-panel">
+            <div className="br-filter-row">
+              <label htmlFor="filter-status" className="br-form-label br-filter-label">
+                Filter by status
+              </label>
+              <select
+                id="filter-status"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="br-auth-input br-filter-select"
+              >
+                <option value="all">All assignments</option>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In progress</option>
+                <option value="submitted">Submitted</option>
+              </select>
+            </div>
+          </section>
+
+          <section className="br-panel">
+            <div className="br-section-header">
+              <h2 className="br-section-title">Assigned Reviews</h2>
+            </div>
+
+            {isLoading ? (
+              <p className="br-state-text">Loading your review assignments...</p>
+            ) : error ? (
+              <div className="br-state-error" role="alert">
+                {error}
+              </div>
+            ) : filteredAssignments.length === 0 ? (
+              <div className="br-empty-state" role="status">
+                No assignments found. Check back later for reviews to complete.
+              </div>
+            ) : (
+              <div className="br-scroll-region br-assignment-scroll" role="region" aria-label="Review assignments" tabIndex={0}>
+                {filteredAssignments.map((assignment) => (
+                  <article key={assignment.id} className="br-assignment-row">
+                    <div className="br-assignment-main">
+                      <h3 className="br-assignment-title">
+                        <span className="br-inline-icon" aria-hidden="true">{'\u{1F4C4}'}</span>
+                        {assignment.title}
+                      </h3>
+                      <p className="br-assignment-meta">
+                        Subject: <strong>{assignment.subject}</strong>
+                      </p>
+                      <p className="br-assignment-meta">
+                        Deadline: <strong>{formatDate(assignment.deadline)}</strong>
+                      </p>
+                    </div>
+
+                    <div className="br-assignment-actions">
+                      <span className={`br-status-pill ${statusClassByAssignment[assignment.status]}`}>
+                        {toDisplayStatus(assignment.status)}
+                      </span>
+                    </div>
+
+                    <a
+                      href={`/review/${assignment.id}`}
+                      className={`br-link-button br-btn-sm ${
+                        assignment.status === 'submitted' ? 'br-btn-secondary' : 'br-btn-primary'
+                      }`}
+                    >
+                      {assignment.status === 'submitted' ? 'View' : 'Review'}
+                    </a>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-      )}
+      </main>
     </div>
   );
 }

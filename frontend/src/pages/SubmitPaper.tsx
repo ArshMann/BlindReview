@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { type SubmissionForm } from '../types';
+import Navbar from '../components/ui/Navbar';
+import '../components/ui/dashboardTheme.css';
 
 export default function SubmitPaper() {
   const [formData, setFormData] = useState<SubmissionForm>({
@@ -14,7 +16,7 @@ export default function SubmitPaper() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleInputChange = (e:any) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -22,7 +24,7 @@ export default function SubmitPaper() {
     }));
   };
 
-  const handleFileChange = (e:any) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({
       ...prev,
@@ -30,7 +32,7 @@ export default function SubmitPaper() {
     }));
   };
 
-  const handleSubmit = async (e:any) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -45,118 +47,128 @@ export default function SubmitPaper() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Submit Paper for Review</h1>
-      <p>
-        Submit your paper anonymously for peer review. Your identity will be hidden from reviewers.
-      </p>
+    <div className="br-theme-page">
+      <Navbar />
 
-      {success ? (
-        <div style={{ padding: '1rem', backgroundColor: '#d4edda', border: '1px solid #c3e6cb' }}>
-          ✓ Paper submitted successfully! You will receive reviews once the review deadline passes.
+      <main className="br-page-container br-dashboard-main">
+        <header className="br-dashboard-header">
+          <h1 className="br-page-title">
+            <span className="br-title-icon" aria-hidden="true">{'\u{1F4E4}'}</span>
+            Submit Paper for Review
+          </h1>
+          <p className="br-page-subtitle">
+            Submit your paper anonymously for peer review. Your identity will be hidden from reviewers.
+          </p>
+        </header>
+
+        <div className="br-dashboard-stack">
+          <section className="br-panel">
+            {success ? (
+              <div className="br-state-success" role="status">
+                Paper submitted successfully. You will receive reviews after the review deadline passes.
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="br-form-grid" noValidate>
+                <div className="br-form-field">
+                  <label htmlFor="title" className="br-form-label">
+                    Title
+                    <span className="br-form-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="title"
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    required
+                    className="br-auth-input"
+                    placeholder="Enter paper title"
+                  />
+                </div>
+
+                <div className="br-form-field">
+                  <label htmlFor="subject" className="br-form-label">
+                    Subject/Topic
+                    <span className="br-form-required" aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    id="subject"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    required
+                    className="br-auth-input"
+                  >
+                    <option value="">Select a subject</option>
+                    <option value="computer-science">Computer Science</option>
+                    <option value="data-science">Data Science</option>
+                    <option value="machine-learning">Machine Learning</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="br-form-field">
+                  <label htmlFor="deadline" className="br-form-label">
+                    Review Deadline
+                    <span className="br-form-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="deadline"
+                    type="date"
+                    name="deadline"
+                    value={formData.deadline}
+                    onChange={handleInputChange}
+                    required
+                    className="br-auth-input"
+                  />
+                </div>
+
+                <div className="br-form-field">
+                  <label htmlFor="description" className="br-form-label">Description</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="br-auth-input br-form-textarea"
+                    placeholder="Brief description or abstract of your paper (optional)"
+                  />
+                </div>
+
+                <div className="br-form-field">
+                  <label htmlFor="file" className="br-form-label">
+                    Upload File
+                    <span className="br-form-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="file"
+                    type="file"
+                    name="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.docx,.doc"
+                    required
+                    className="br-file-input"
+                  />
+                  <small className="br-input-help">Accepted formats: PDF, DOCX (max 2 MB)</small>
+                </div>
+
+                {error && (
+                  <div className="br-state-error" role="alert">
+                    {error}
+                  </div>
+                )}
+
+                <div className="br-cta-row">
+                  <button type="submit" disabled={isLoading} className="br-btn-primary">
+                    {isLoading ? 'Submitting...' : 'Submit Paper'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} style={{ maxWidth: '600px' }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="title">
-              Title: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              id="title"
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-              placeholder="Enter paper title"
-            />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="subject">
-              Subject/Topic: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <select
-              id="subject"
-              name="subject"
-              value={formData.subject}
-              onChange={handleInputChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              <option value="">Select a subject</option>
-              <option value="computer-science">Computer Science</option>
-              <option value="data-science">Data Science</option>
-              <option value="machine-learning">Machine Learning</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="deadline">
-              Review Deadline: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              id="deadline"
-              type="date"
-              name="deadline"
-              value={formData.deadline}
-              onChange={handleInputChange}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="description">Description:</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              style={{ width: '100%', padding: '0.5rem', minHeight: '120px' }}
-              placeholder="Brief description or abstract of your paper (optional)"
-            />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="file">
-              Upload File: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              id="file"
-              type="file"
-              name="file"
-              onChange={handleFileChange}
-              accept=".pdf,.docx,.doc"
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
-            <small>Accepted formats: PDF, DOCX (max 2 MB)</small>
-          </div>
-
-          {error && (
-            <div style={{ padding: '1rem', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', marginBottom: '1rem' }}>
-              ✗ {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: isLoading ? '#ccc' : '#007bff',
-              color: 'white',
-              border: 'none',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {isLoading ? 'Submitting...' : 'Submit Paper'}
-          </button>
-        </form>
-      )}
+      </main>
     </div>
   );
 }
+
