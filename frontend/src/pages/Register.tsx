@@ -37,7 +37,7 @@ const Register = () => {
 
             const { Token, User } = loginRes.data;
             login(Token, User);
-            navigate('/dashboard');
+            navigate('/');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Registration failed. User might already exist.');
         } finally {
