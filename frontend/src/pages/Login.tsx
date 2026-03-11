@@ -24,7 +24,7 @@ const Login = () => {
             const { Token, User } = response.data;
 
             login(Token, User);
-            navigate('/dashboard');
+            navigate('/');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {

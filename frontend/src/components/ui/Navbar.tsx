@@ -4,10 +4,10 @@ import { useAuth } from '@/auth';
 import './dashboardTheme.css';
 
 const navLinks = [
-  { to: '/', label: 'Home' },
-  { to: '/my-submissions', label: 'My Submissions' },
-  { to: '/review-assignments', label: 'Review Assignments' },
-  { to: '/profile', label: 'Profile' },
+  { to: '/', label: 'Home', icon: '\u{1F3E0}' },
+  { to: '/my-submissions', label: 'My Submissions', icon: '\u{1F4C4}' },
+  { to: '/review-assignments', label: 'Review Assignments', icon: '\u{1F50D}' },
+  { to: '/profile', label: 'Profile', icon: '\u{1F464}' },
 ];
 
 const isRouteActive = (pathname: string, route: string) => {
@@ -50,7 +50,10 @@ export default function Navbar() {
               to={link.to}
               className={`br-navbar-link ${isRouteActive(location.pathname, link.to) ? 'br-link-active' : ''}`}
             >
-              {link.label}
+              <span className="br-nav-link-content">
+                <span className="br-nav-icon" aria-hidden="true">{link.icon}</span>
+                <span>{link.label}</span>
+              </span>
             </Link>
           ))}
         </nav>
@@ -97,7 +100,10 @@ export default function Navbar() {
                 to={link.to}
                 className={`br-mobile-link ${isRouteActive(location.pathname, link.to) ? 'br-link-active' : ''}`}
               >
-                {link.label}
+                <span className="br-nav-link-content">
+                  <span className="br-nav-icon" aria-hidden="true">{link.icon}</span>
+                  <span>{link.label}</span>
+                </span>
               </Link>
             ))}
           </nav>
