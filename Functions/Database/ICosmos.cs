@@ -49,4 +49,11 @@ public interface ICosmos
         int pageSize = 10,
         QueryRequestOptions? requestOptions = null
     );
+    public Task<Result<T>> UpsertItem<T>(
+        string databaseName,
+        string containerName,
+        T item,
+        PartitionKey? partitionKey = null,
+        ItemRequestOptions? requestOptions = null,
+        CancellationToken cancellationToken = default);
 }
