@@ -3,10 +3,10 @@ using Microsoft.Azure.Cosmos.Linq;
 
 namespace Functions.Database;
 
-public class Cosmos: ICosmos
+public class Cosmos : ICosmos
 {
     public CosmosClient client { get; set; }
-    
+
     public Cosmos()
     {
         var connectionString = Environment.GetEnvironmentVariable("CosmosConnection")
@@ -39,7 +39,7 @@ public class Cosmos: ICosmos
             return Result<T>.Fail(ex);
         }
     }
-    
+
     public async Task<Result<T>> GetItem<T>(
         string databaseName,
         string containerName,
@@ -51,7 +51,8 @@ public class Cosmos: ICosmos
         try
         {
             var container = client.GetContainer(databaseName, containerName);
-            var response = await container.ReadItemAsync<T>(id, partitionKey ?? new PartitionKey(), requestOptions, cancellationToken);
+            var response = await container.ReadItemAsync<T>(id, partitionKey ?? new PartitionKey(), requestOptions,
+                cancellationToken);
             return Result<T>.Ok(response);
         }
         catch (Exception ex)
@@ -59,7 +60,7 @@ public class Cosmos: ICosmos
             return Result<T>.Fail(ex);
         }
     }
-    
+
     public async Task<Result<T>> PatchItem<T>(
         string databaseName,
         string containerName,
@@ -79,13 +80,13 @@ public class Cosmos: ICosmos
             return Result<T>.Fail(ex);
         }
     }
-    
+
     public async Task<Result<List<T>>> QueryItemFixed<T>(
         string databaseName,
         string containerName,
         Func<IQueryable<T>, IQueryable<T>> query,
-        string? continuationToken = null, 
-        QueryRequestOptions?requestOptions = null
+        string? continuationToken = null,
+        QueryRequestOptions? requestOptions = null
     )
     {
         try
@@ -93,10 +94,10 @@ public class Cosmos: ICosmos
             var container = client.GetContainer(databaseName, containerName);
             var response = container.GetItemLinqQueryable<T>();
             var output = new List<T>();
-            
+
             var result = query(response.AsQueryable());
             using var itererator = result.ToFeedIterator();
-            
+
             while (itererator.HasMoreResults)
             {
                 foreach (var item in await itererator.ReadNextAsync())
@@ -104,6 +105,7 @@ public class Cosmos: ICosmos
                     output.Add(item);
                 }
             }
+
             return Result<List<T>>.Ok(output);
         }
         catch (Exception ex)
@@ -111,6 +113,7 @@ public class Cosmos: ICosmos
             return Result<List<T>>.Fail(ex);
         }
     }
+
     public async Task<Result<FeedResponse<T>>> QueryItemsPaged<T>(
         string databaseName,
         string containerName,
@@ -125,26 +128,46 @@ public class Cosmos: ICosmos
             var container = client.GetContainer(databaseName, containerName);
             var response = container.GetItemLinqQueryable<T>(
                 continuationToken: continuationToken,
-                requestOptions: new QueryRequestOptions 
-                { 
-                    MaxItemCount = pageSize 
+                requestOptions: new QueryRequestOptions
+                {
+                    MaxItemCount = pageSize
                 }
             );
-        
+
             var result = query(response.AsQueryable());
             using var iterator = result.ToFeedIterator();
-        
+
             if (iterator.HasMoreResults)
             {
                 var page = await iterator.ReadNextAsync();
                 return Result<FeedResponse<T>>.Ok(page);
             }
-        
+
             return Result<FeedResponse<T>>.Fail(new Exception("No results"));
         }
         catch (Exception ex)
         {
             return Result<FeedResponse<T>>.Fail(ex);
+        }
+    }
+
+    public async Task<Result<T>> UpsertItem<T>(
+        string databaseName,
+        string containerName,
+        T item,
+        PartitionKey? partitionKey = null,
+        ItemRequestOptions? requestOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = client.GetContainer(databaseName, containerName);
+            var response = await container.UpsertItemAsync(item, partitionKey, requestOptions, cancellationToken);
+            return Result<T>.Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return Result<T>.Fail(ex);
         }
     }
 }

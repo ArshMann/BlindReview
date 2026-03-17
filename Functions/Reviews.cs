@@ -148,7 +148,8 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     {
         // TODO start here
         // This is where comments on a reviewable will happen,
-        // this request should update the reviewable with the comment and add a cost point to the person reviewing,
+        // this request should update the reviewable with the comment and
+        // add a cost point to the person reviewing,
         // be mindful about how we can keep it anonymous  
         var result = await req.RequestBodyResult<Comment>();
         
