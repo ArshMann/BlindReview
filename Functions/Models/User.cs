@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Functions.Models;
 
 public class User
