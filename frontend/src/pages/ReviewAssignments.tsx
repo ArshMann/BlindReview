@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { type AssignmentStatus, type ReviewAssignment } from '../types';
 import { assignmentService } from '@/services/assignmentService';
+import { reviewableService } from '@/services/reviewableService';
 import Navbar from '../components/ui/Navbar';
 import '../components/ui/dashboardTheme.css';
 
@@ -28,6 +29,7 @@ export default function ReviewAssignments() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [busyAssignmentId, setBusyAssignmentId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -58,6 +60,34 @@ export default function ReviewAssignments() {
   const pendingCount = assignments.filter((a) => a.status === 'pending').length;
   const inProgressCount = assignments.filter((a) => a.status === 'in-progress').length;
   const submittedCount = assignments.filter((a) => a.status === 'submitted').length;
+
+  const handleOpenDocument = async (assignment: ReviewAssignment, shouldDownload = false) => {
+    try {
+      setBusyAssignmentId(assignment.id);
+      const blob = await reviewableService.downloadFile(assignment.submissionId, {
+        download: shouldDownload,
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      if (shouldDownload) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = assignment.title || assignment.submissionId;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else {
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      console.error('Unable to open assignment document.', err);
+      alert('Unable to open this assignment document right now.');
+    } finally {
+      setBusyAssignmentId(null);
+    }
+  };
 
   return (
     <div className="br-theme-page">
@@ -154,10 +184,30 @@ export default function ReviewAssignments() {
                       <span className={`br-status-pill ${statusClassByAssignment[assignment.status]}`}>
                         {toDisplayStatus(assignment.status)}
                       </span>
+                      <button
+                        type="button"
+                        className="br-link-button br-btn-sm br-btn-secondary"
+                        onClick={() => handleOpenDocument(assignment)}
+                        disabled={busyAssignmentId === assignment.id}
+                      >
+                        View document
+                      </button>
+                      <button
+                        type="button"
+                        className="br-link-button br-btn-sm br-btn-secondary"
+                        onClick={() => handleOpenDocument(assignment, true)}
+                        disabled={busyAssignmentId === assignment.id}
+                      >
+                        Download
+                      </button>
                     </div>
 
                     <Link
                       to={`/review/${assignment.id}`}
+                      state={{
+                        submissionId: assignment.submissionId,
+                        assignmentTitle: assignment.title,
+                      }}
                       className={`br-link-button br-btn-sm ${
                         assignment.status === 'submitted' ? 'br-btn-secondary' : 'br-btn-primary'
                       }`}
