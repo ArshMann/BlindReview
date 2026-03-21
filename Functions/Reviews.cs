@@ -1,5 +1,5 @@
 using Azure.Storage.Blobs;
-using Functions.AssignmentsService;
+using Functions.Services.Assignments;
 using Functions.Database;
 using Functions.Storage;
 using Functions.HTTP;
@@ -9,7 +9,7 @@ using static Functions.HTTP.Handlers;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, AssignmentService assignmentService)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, IAssignmentService assignmentService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
 

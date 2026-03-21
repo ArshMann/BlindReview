@@ -50,8 +50,12 @@ export interface ReviewAssignment {
   title: string;
   subject: string;
   assignedDate: string;
-  deadline: string;
+  deadline: string | null;
   status: AssignmentStatus;
+}
+
+export interface ListMyAssignmentsResponse {
+  items: ReviewAssignment[];
 }
 
 

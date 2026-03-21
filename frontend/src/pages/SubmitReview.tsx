@@ -1,7 +1,10 @@
+import { useParams } from 'react-router-dom';
 import Navbar from '../components/ui/Navbar';
 import '../components/ui/dashboardTheme.css';
 
 export default function SubmitReview() {
+  const { assignmentId } = useParams<{ assignmentId: string }>();
+
   return (
     <div className="br-theme-page">
       <Navbar />
@@ -12,7 +15,12 @@ export default function SubmitReview() {
             <span className="br-title-icon" aria-hidden="true">{'\u{270D}'}</span>
             Submit Review
           </h1>
-          <p className="br-page-subtitle">Use this page to complete and submit your anonymous feedback.</p>
+          <p className="br-page-subtitle">
+            Use this page to complete and submit your anonymous feedback.
+            {assignmentId ? (
+              <span className="br-assignment-meta"> Assignment ID: {assignmentId}</span>
+            ) : null}
+          </p>
         </header>
 
         <div className="br-dashboard-stack">

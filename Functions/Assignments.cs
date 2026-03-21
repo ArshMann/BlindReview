@@ -23,13 +23,11 @@ public class Assignments(ILogger<Assignments> logger, ICosmos cosmos)
             return await req.ErrorResponse(userResult.error, logger);
         }
 
-        var statusFilter = GetStatusFilter(req);
         var assignmentsResult = await cosmos.QueryItemFixed<Assignment>(
             DatabaseName,
             AssignmentsContainerName,
             q => q
                 .Where(a => a.reviewerUserId == userResult.value)
-                .Where(a => string.IsNullOrWhiteSpace(statusFilter) || a.status == statusFilter)
                 .OrderByDescending(a => a.assignedAt));
 
         if (!assignmentsResult.isSuccess)
@@ -67,12 +65,6 @@ public class Assignments(ILogger<Assignments> logger, ICosmos cosmos)
         }
 
         return await req.JsonResponse(new { items }, HttpStatusCode.OK);
-    }
-
-    private static string? GetStatusFilter(HttpRequestData req)
-    {
-        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-        return query["status"];
     }
 
     private class ReviewAssignmentResponse

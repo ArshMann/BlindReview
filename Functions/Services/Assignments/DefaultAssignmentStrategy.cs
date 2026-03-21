@@ -2,7 +2,7 @@ using Functions.Database;
 using Functions.Models;
 using Functions.Utils;
 
-namespace Functions.AssignmentsService;
+namespace Functions.Services.Assignments;
 
 public class DefaultAssignmentStrategy(ICosmos cosmos) : IAssignmentStrategy
 {

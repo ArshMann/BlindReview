@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Functions.Storage;
 using Functions.Middleware;
 using Functions.Utils;
-using Functions.AssignmentsService;
+using Functions.Services.Assignments;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(workerApp =>

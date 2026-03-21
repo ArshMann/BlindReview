@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { type AssignmentStatus, type ReviewAssignment } from '../types';
+import { assignmentService } from '@/services/assignmentService';
 import Navbar from '../components/ui/Navbar';
 import '../components/ui/dashboardTheme.css';
 
@@ -12,12 +14,14 @@ const statusClassByAssignment: Record<AssignmentStatus, string> = {
 const toDisplayStatus = (status: AssignmentStatus) =>
   status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
 
-const formatDate = (isoDate: string) =>
-  new Date(isoDate).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+const formatDate = (isoDate: string | null) =>
+  isoDate
+    ? new Date(isoDate).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Not set';
 
 export default function ReviewAssignments() {
   const [assignments, setAssignments] = useState<ReviewAssignment[]>([]);
@@ -29,28 +33,15 @@ export default function ReviewAssignments() {
     const fetchAssignments = async () => {
       try {
         setIsLoading(true);
-        setAssignments([
-          {
-            id: 'assign-1',
-            submissionId: '1',
-            title: 'Deep Learning for NLP',
-            subject: 'machine-learning',
-            assignedDate: '2026-02-05',
-            deadline: '2026-02-20',
-            status: 'pending',
-          },
-          {
-            id: 'assign-2',
-            submissionId: '2',
-            title: 'Blockchain Security Analysis',
-            subject: 'computer-science',
-            assignedDate: '2026-02-05',
-            deadline: '2026-02-20',
-            status: 'in-progress',
-          },
-        ]);
-      } catch (err) {
-        setError((err as Error).message || 'Failed to load assignments');
+        setError(null);
+        const items = await assignmentService.getMyAssignments();
+        setAssignments(items);
+      } catch (err: unknown) {
+        const message =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        setError(message || (err instanceof Error ? err.message : 'Failed to load assignments'));
       } finally {
         setIsLoading(false);
       }
@@ -165,14 +156,14 @@ export default function ReviewAssignments() {
                       </span>
                     </div>
 
-                    <a
-                      href={`/review/${assignment.id}`}
+                    <Link
+                      to={`/review/${assignment.id}`}
                       className={`br-link-button br-btn-sm ${
                         assignment.status === 'submitted' ? 'br-btn-secondary' : 'br-btn-primary'
                       }`}
                     >
                       {assignment.status === 'submitted' ? 'View' : 'Review'}
-                    </a>
+                    </Link>
                   </article>
                 ))}
               </div>
