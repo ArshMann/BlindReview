@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Functions.Services.Assignments;
 using Functions.Database;
 using Functions.Storage;
 using Functions.HTTP;
@@ -8,9 +9,12 @@ using static Functions.HTTP.Handlers;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, IAssignmentService assignmentService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
+    private const string DatabaseName = "blind-review";
+    private const string ReviewablesContainerName = "reviewables";
+    private const string AssignmentsContainerName = "assignments";
 
     [Function("UploadReviewable")]
     public async Task<HttpResponseData> UploadReviewable(
@@ -50,6 +54,24 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         if (program.isSuccess)
         {
+            var ownerUserIdResult = context.GetUserId();
+            if (ownerUserIdResult.isSuccess)
+            {
+                var assignmentResult = await assignmentService.CreateAssignmentsForReviewable(program.value, ownerUserIdResult.value);
+                if (!assignmentResult.isSuccess)
+                {
+                    logger.LogError(assignmentResult.error,
+                        "Upload succeeded but assignment creation failed for reviewable {ReviewableId}",
+                        program.value.id);
+                }
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Upload succeeded but assignment creation skipped due to missing user context for reviewable {ReviewableId}",
+                    program.value.id);
+            }
+
             return await req.JsonResponse(program.value, HttpStatusCode.Created);
         }
 
@@ -63,7 +85,43 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
             HttpRequestData req,
             string fileName)
     {
-        var result = await context.GetUserId().ThenAsync(_ => blobService.DownloadAsync(_containerName, fileName));
+        var userResult = context.GetUserId();
+        if (!userResult.isSuccess)
+        {
+            return await req.ErrorResponse(userResult.error, logger);
+        }
+
+        var userId = userResult.value;
+        var ownerReviewableResult = await cosmos.GetItem<Reviewable>(
+            DatabaseName,
+            ReviewablesContainerName,
+            fileName,
+            new PartitionKey(userId));
+
+        var isAuthorized = ownerReviewableResult.isSuccess;
+        if (!isAuthorized)
+        {
+            var assignmentResult = await cosmos.QueryItemFixed<Assignment>(
+                DatabaseName,
+                AssignmentsContainerName,
+                q => q.Where(a => a.reviewerUserId == userId && a.reviewableId == fileName));
+
+            if (!assignmentResult.isSuccess)
+            {
+                return await req.ErrorResponse(assignmentResult.error, logger);
+            }
+
+            isAuthorized = assignmentResult.value.Count > 0;
+        }
+
+        if (!isAuthorized)
+        {
+            var notFound = req.CreateResponse(HttpStatusCode.NotFound);
+            await notFound.WriteStringAsync("File not found.");
+            return notFound;
+        }
+
+        var result = await blobService.DownloadAsync(_containerName, fileName);
 
         if (!result.isSuccess)
         {
@@ -84,7 +142,10 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         response.Headers.Add("Content-Type", contentType);
 
-        response.Headers.Add("Content-Disposition", $"inline; filename=\"{fileName}\"");
+        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var isDownload = string.Equals(query["download"], "1", StringComparison.Ordinal);
+        var dispositionType = isDownload ? "attachment" : "inline";
+        response.Headers.Add("Content-Disposition", $"{dispositionType}; filename=\"{fileName}\"");
 
         await using var blobStream = result.value.Content;
         await blobStream.CopyToAsync(response.Body);
@@ -118,13 +179,14 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         var contToken = req.GetContinuationToken().value;
         var pageSize = req.GetPageSize().value;
 
-        var result = await cosmos.QueryItemsPaged<Reviewable>(
-            "blind-review",
-            "reviewables",
-            q => q,
-            continuationToken: contToken,
-            pageSize: pageSize
-        );
+        var result = await context.GetUserId().ThenAsync(userId =>
+            cosmos.QueryItemsPaged<Reviewable>(
+                "blind-review",
+                "reviewables",
+                q => q.Where(r => r.userId == userId),
+                continuationToken: contToken,
+                pageSize: pageSize
+            ));
         if (!result.isSuccess)
         {
             return await req.ErrorResponse(result.error);
