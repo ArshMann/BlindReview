@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Functions.Storage;
 using Functions.Middleware;
 using Functions.Utils;
+using Functions.AssignmentsService;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(workerApp =>
@@ -16,6 +17,10 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.AddSingleton<ICosmos, Cosmos>();
         services.AddSingleton<IBlobService, AzureBlobService>();
+
+        services.AddSingleton<AssignmentService>();
+        services.AddSingleton<IAssignmentStrategy, DefaultAssignmentStrategy>();
+        
         services.Configure<JsonSerializerOptions>(options =>
         {
             options.WriteIndented = true;

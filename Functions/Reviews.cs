@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Functions.AssignmentsService;
 using Functions.Database;
 using Functions.Storage;
 using Functions.HTTP;
@@ -8,7 +9,7 @@ using static Functions.HTTP.Handlers;
 
 namespace Functions;
 
-public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos)
+public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos cosmos, AssignmentService assignmentService)
 {
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
 
@@ -50,6 +51,24 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
 
         if (program.isSuccess)
         {
+            var ownerUserIdResult = context.GetUserId();
+            if (ownerUserIdResult.isSuccess)
+            {
+                var assignmentResult = await assignmentService.CreateAssignmentsForReviewable(program.value, ownerUserIdResult.value);
+                if (!assignmentResult.isSuccess)
+                {
+                    logger.LogError(assignmentResult.error,
+                        "Upload succeeded but assignment creation failed for reviewable {ReviewableId}",
+                        program.value.id);
+                }
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Upload succeeded but assignment creation skipped due to missing user context for reviewable {ReviewableId}",
+                    program.value.id);
+            }
+
             return await req.JsonResponse(program.value, HttpStatusCode.Created);
         }
 
@@ -118,13 +137,14 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         var contToken = req.GetContinuationToken().value;
         var pageSize = req.GetPageSize().value;
 
-        var result = await cosmos.QueryItemsPaged<Reviewable>(
-            "blind-review",
-            "reviewables",
-            q => q,
-            continuationToken: contToken,
-            pageSize: pageSize
-        );
+        var result = await context.GetUserId().ThenAsync(userId =>
+            cosmos.QueryItemsPaged<Reviewable>(
+                "blind-review",
+                "reviewables",
+                q => q.Where(r => r.userId == userId),
+                continuationToken: contToken,
+                pageSize: pageSize
+            ));
         if (!result.isSuccess)
         {
             return await req.ErrorResponse(result.error);
