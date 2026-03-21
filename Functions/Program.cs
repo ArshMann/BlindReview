@@ -18,8 +18,9 @@ var host = new HostBuilder()
         services.AddSingleton<ICosmos, Cosmos>();
         services.AddSingleton<IBlobService, AzureBlobService>();
 
-        services.AddSingleton<AssignmentService>();
+        services.AddSingleton<IAssignmentStrategy, DedicatedReviewerStrategy>();
         services.AddSingleton<IAssignmentStrategy, DefaultAssignmentStrategy>();
+        services.AddSingleton<IAssignmentService, AssignmentService>();
         
         services.Configure<JsonSerializerOptions>(options =>
         {

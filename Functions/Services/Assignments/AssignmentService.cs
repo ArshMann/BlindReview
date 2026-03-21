@@ -4,7 +4,9 @@ using Functions.Utils;
 
 namespace Functions.AssignmentsService;
 
-public class AssignmentService(ICosmos cosmos, IAssignmentStrategy strategy)
+public class AssignmentService(
+    ICosmos cosmos,
+    IEnumerable<IAssignmentStrategy> strategies) : IAssignmentService
 {
     private const string DatabaseName = "blind-review";
     private const string AssignmentsContainerName = "assignments";
@@ -13,6 +15,12 @@ public class AssignmentService(ICosmos cosmos, IAssignmentStrategy strategy)
         Reviewable reviewable,
         string ownerUserId)
     {
+        var strategy = strategies.FirstOrDefault(s => s.CanHandle(reviewable));
+        if (strategy == null)
+        {
+            return Result<List<Assignment>>.Fail("Unsupported reviewable type.");
+        }
+
         var selectionResult = await strategy.SelectReviewersAsync(reviewable, ownerUserId);
         if (!selectionResult.isSuccess)
         {
@@ -25,30 +33,28 @@ public class AssignmentService(ICosmos cosmos, IAssignmentStrategy strategy)
             return Result<List<Assignment>>.Ok([]);
         }
 
-        var assignments = new List<Assignment>();
-        foreach (var reviewerId in reviewerIds)
+        var assignments = reviewerIds.Select(reviewerId => new Assignment
         {
-            var assignment = new Assignment
-            {
-                reviewableId = reviewable.id ?? string.Empty,
-                ownerUserId = ownerUserId,
-                reviewerUserId = reviewerId,
-                status = "pending",
-                assignedAt = DateTime.UtcNow,
-            };
+            reviewableId = reviewable.id ?? string.Empty,
+            ownerUserId = ownerUserId,
+            reviewerUserId = reviewerId,
+            status = "pending",
+            assignedAt = DateTime.UtcNow,
+        }).ToList();
 
-            var createResult = await cosmos.CreateItem(
+        var createTasks = assignments.Select(assignment =>
+            cosmos.CreateItem(
                 DatabaseName,
                 AssignmentsContainerName,
                 assignment,
-                new PartitionKey(assignment.reviewerUserId));
+                new PartitionKey(assignment.reviewerUserId)));
 
-            if (!createResult.isSuccess)
-            {
-                return Result<List<Assignment>>.Fail(createResult.error);
-            }
+        var results = await Task.WhenAll(createTasks);
 
-            assignments.Add(assignment);
+        var failures = results.Where(r => !r.isSuccess).ToList();
+        if (failures.Count != 0)
+        {
+            return Result<List<Assignment>>.Fail(failures.First().error);
         }
 
         return Result<List<Assignment>>.Ok(assignments);

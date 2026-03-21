@@ -4,13 +4,12 @@ using Functions.Utils;
 
 namespace Functions.AssignmentsService;
 
-public class DefaultAssignmentStrategy(ICosmos cosmos) : IAssignmentStrategy
+public class DedicatedReviewerStrategy(ICosmos cosmos) : IAssignmentStrategy
 {
     private const string DatabaseName = "blind-review";
     private const string UsersContainerName = "users";
 
-    // Failsafe - Default strategy
-    public bool CanHandle(Reviewable reviewable) => true;
+    public bool CanHandle(Reviewable reviewable) => reviewable.type == "Expert";
 
     public async Task<Result<IReadOnlyList<string>>> SelectReviewersAsync(
         Reviewable reviewable,
@@ -21,6 +20,7 @@ public class DefaultAssignmentStrategy(ICosmos cosmos) : IAssignmentStrategy
             UsersContainerName,
             q => q
                 .Where(u => u.id != ownerUserId)
+                .Where(u => u.role == "Reviewer")
                 .Take(50));
 
         if (!usersResult.isSuccess)

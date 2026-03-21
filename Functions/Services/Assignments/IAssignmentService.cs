@@ -3,10 +3,9 @@ using Functions.Utils;
 
 namespace Functions.AssignmentsService;
 
-public interface IAssignmentStrategy
+public interface IAssignmentService
 {
-    bool CanHandle(Reviewable reviewable);
-    Task<Result<IReadOnlyList<string>>> SelectReviewersAsync(
+    Task<Result<List<Assignment>>> CreateAssignmentsForReviewable(
         Reviewable reviewable,
         string ownerUserId);
 }
