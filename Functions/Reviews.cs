@@ -14,7 +14,6 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     private readonly string _containerName = Environment.GetEnvironmentVariable("BlobContainerName") ?? "reviewables";
     private const string DatabaseName = "blind-review";
     private const string ReviewablesContainerName = "reviewables";
-    private const string AssignmentsContainerName = "assignments";
 
     [Function("UploadReviewable")]
     public async Task<HttpResponseData> UploadReviewable(
@@ -37,41 +36,45 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
                 Result<(Task<Result<BlobClient>>, string)>.Ok((blobService.UploadAsync(_containerName, fileName, file), userId)))
             .ThenAsync(async prev =>
             {
-                var reviewable = new Reviewable()
+                var uploadResult = await prev.Item1;
+                if (!uploadResult.isSuccess)
                 {
-                    blobUrl = prev.Item1.Result.value.Uri.AbsoluteUri,
+                    return Result<Reviewable>.Fail(uploadResult.error);
+                }
+
+                var userId = prev.Item2;
+                var reviewableBase = new Reviewable
+                {
+                    blobUrl = uploadResult.value.Uri.AbsoluteUri,
                     createdAt = DateTime.UtcNow,
                     id = fileName,
                     type = realContentType,
                     name = fileName,
-                    userId = prev.Item2,
+                    userId = userId,
                     cost = 1
                 };
+
+                var assignmentResult = await assignmentService.CreateAssignmentsForReviewable(reviewableBase, userId);
+                var assignments = new List<ReviewableAssignment>();
+                if (!assignmentResult.isSuccess)
+                {
+                    logger.LogError(assignmentResult.error,
+                        "Assignment selection failed for reviewable {ReviewableId} before persist",
+                        reviewableBase.id);
+                }
+                else
+                {
+                    assignments = assignmentResult.value;
+                }
+
+                var reviewable = reviewableBase with { assignments = assignments };
                 return await cosmos.CreateItem("blind-review",
-                    "reviewables",
+                    ReviewablesContainerName,
                     reviewable);
             });
 
         if (program.isSuccess)
         {
-            var ownerUserIdResult = context.GetUserId();
-            if (ownerUserIdResult.isSuccess)
-            {
-                var assignmentResult = await assignmentService.CreateAssignmentsForReviewable(program.value, ownerUserIdResult.value);
-                if (!assignmentResult.isSuccess)
-                {
-                    logger.LogError(assignmentResult.error,
-                        "Upload succeeded but assignment creation failed for reviewable {ReviewableId}",
-                        program.value.id);
-                }
-            }
-            else
-            {
-                logger.LogWarning(
-                    "Upload succeeded but assignment creation skipped due to missing user context for reviewable {ReviewableId}",
-                    program.value.id);
-            }
-
             return await req.JsonResponse(program.value, HttpStatusCode.Created);
         }
 
@@ -101,17 +104,19 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
         var isAuthorized = ownerReviewableResult.isSuccess;
         if (!isAuthorized)
         {
-            var assignmentResult = await cosmos.QueryItemFixed<Assignment>(
+            var reviewerReviewableResult = await cosmos.QueryItemFixed<Reviewable>(
                 DatabaseName,
-                AssignmentsContainerName,
-                q => q.Where(a => a.reviewerUserId == userId && a.reviewableId == fileName));
+                ReviewablesContainerName,
+                q => q.Where(r =>
+                    r.id == fileName
+                    && r.assignments.Any(a => a.reviewerUserId == userId)));
 
-            if (!assignmentResult.isSuccess)
+            if (!reviewerReviewableResult.isSuccess)
             {
-                return await req.ErrorResponse(assignmentResult.error, logger);
+                return await req.ErrorResponse(reviewerReviewableResult.error, logger);
             }
 
-            isAuthorized = assignmentResult.value.Count > 0;
+            isAuthorized = reviewerReviewableResult.value.Count > 0;
         }
 
         if (!isAuthorized)

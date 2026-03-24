@@ -5,7 +5,7 @@ namespace Functions.Services.Assignments;
 
 public interface IAssignmentService
 {
-    Task<Result<List<Assignment>>> CreateAssignmentsForReviewable(
+    Task<Result<List<ReviewableAssignment>>> CreateAssignmentsForReviewable(
         Reviewable reviewable,
         string ownerUserId);
 }

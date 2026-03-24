@@ -8,7 +8,6 @@ namespace Functions;
 public class Assignments(ILogger<Assignments> logger, ICosmos cosmos)
 {
     private const string DatabaseName = "blind-review";
-    private const string AssignmentsContainerName = "assignments";
     private const string ReviewablesContainerName = "reviewables";
 
     [Function("ListMyAssignments")]
@@ -23,46 +22,37 @@ public class Assignments(ILogger<Assignments> logger, ICosmos cosmos)
             return await req.ErrorResponse(userResult.error, logger);
         }
 
-        var assignmentsResult = await cosmos.QueryItemFixed<Assignment>(
+        var userId = userResult.value;
+        var reviewablesResult = await cosmos.QueryItemFixed<Reviewable>(
             DatabaseName,
-            AssignmentsContainerName,
-            q => q
-                .Where(a => a.reviewerUserId == userResult.value)
-                .OrderByDescending(a => a.assignedAt));
+            ReviewablesContainerName,
+            q => q.Where(r => r.assignments.Any(a => a.reviewerUserId == userId)));
 
-        if (!assignmentsResult.isSuccess)
+        if (!reviewablesResult.isSuccess)
         {
-            return await req.ErrorResponse(assignmentsResult.error, logger);
+            return await req.ErrorResponse(reviewablesResult.error, logger);
         }
 
         var items = new List<ReviewAssignmentResponse>();
-        foreach (var assignment in assignmentsResult.value)
+        foreach (var r in reviewablesResult.value)
         {
-            var reviewableResult = await cosmos.GetItem<Reviewable>(
-                DatabaseName,
-                ReviewablesContainerName,
-                assignment.reviewableId,
-                new PartitionKey(assignment.ownerUserId));
-
-            var title = assignment.reviewableId;
-            var subject = "Document";
-            if (reviewableResult.isSuccess)
+            foreach (var a in r.assignments.Where(x => x.reviewerUserId == userId))
             {
-                title = reviewableResult.value.name ?? assignment.reviewableId;
-                subject = reviewableResult.value.type ?? "Document";
+                var submissionId = r.id ?? string.Empty;
+                items.Add(new ReviewAssignmentResponse
+                {
+                    id = $"{submissionId}:{a.reviewerUserId}",
+                    submissionId = submissionId,
+                    title = r.name ?? submissionId,
+                    subject = r.type ?? "Document",
+                    assignedDate = a.assignedAt,
+                    deadline = a.deadline,
+                    status = a.status
+                });
             }
-
-            items.Add(new ReviewAssignmentResponse
-            {
-                id = assignment.id,
-                submissionId = assignment.reviewableId,
-                title = title,
-                subject = subject,
-                assignedDate = assignment.assignedAt,
-                deadline = assignment.deadline,
-                status = assignment.status
-            });
         }
+
+        items.Sort((x, y) => y.assignedDate.CompareTo(x.assignedDate));
 
         return await req.JsonResponse(new { items }, HttpStatusCode.OK);
     }
