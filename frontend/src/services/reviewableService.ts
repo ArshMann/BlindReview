@@ -16,9 +16,10 @@ export const reviewableService = {
         });
         return response.data;
     },
-    downloadFile: async (fileName: string): Promise<Blob> => {
-        const response = await api.get<Blob>(`/file/${fileName}`, {
+    downloadFile: async (fileName: string, options?: { download?: boolean }): Promise<Blob> => {
+        const response = await api.get<Blob>(`/file/${encodeURIComponent(fileName)}`, {
             responseType: 'blob',
+            params: options?.download ? { download: '1' } : undefined,
         });
         return response.data;
     },

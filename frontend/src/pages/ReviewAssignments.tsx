@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { type AssignmentStatus, type ReviewAssignment } from '../types';
+import { assignmentService } from '@/services/assignmentService';
+import { reviewableService } from '@/services/reviewableService';
 import Navbar from '../components/ui/Navbar';
 import '../components/ui/dashboardTheme.css';
 
@@ -12,45 +15,35 @@ const statusClassByAssignment: Record<AssignmentStatus, string> = {
 const toDisplayStatus = (status: AssignmentStatus) =>
   status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
 
-const formatDate = (isoDate: string) =>
-  new Date(isoDate).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+const formatDate = (isoDate: string | null) =>
+  isoDate
+    ? new Date(isoDate).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Not set';
 
 export default function ReviewAssignments() {
   const [assignments, setAssignments] = useState<ReviewAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [busyAssignmentId, setBusyAssignmentId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
         setIsLoading(true);
-        setAssignments([
-          {
-            id: 'assign-1',
-            submissionId: '1',
-            title: 'Deep Learning for NLP',
-            subject: 'machine-learning',
-            assignedDate: '2026-02-05',
-            deadline: '2026-02-20',
-            status: 'pending',
-          },
-          {
-            id: 'assign-2',
-            submissionId: '2',
-            title: 'Blockchain Security Analysis',
-            subject: 'computer-science',
-            assignedDate: '2026-02-05',
-            deadline: '2026-02-20',
-            status: 'in-progress',
-          },
-        ]);
-      } catch (err) {
-        setError((err as Error).message || 'Failed to load assignments');
+        setError(null);
+        const items = await assignmentService.getMyAssignments();
+        setAssignments(items);
+      } catch (err: unknown) {
+        const message =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        setError(message || (err instanceof Error ? err.message : 'Failed to load assignments'));
       } finally {
         setIsLoading(false);
       }
@@ -67,6 +60,34 @@ export default function ReviewAssignments() {
   const pendingCount = assignments.filter((a) => a.status === 'pending').length;
   const inProgressCount = assignments.filter((a) => a.status === 'in-progress').length;
   const submittedCount = assignments.filter((a) => a.status === 'submitted').length;
+
+  const handleOpenDocument = async (assignment: ReviewAssignment, shouldDownload = false) => {
+    try {
+      setBusyAssignmentId(assignment.id);
+      const blob = await reviewableService.downloadFile(assignment.submissionId, {
+        download: shouldDownload,
+      });
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      if (shouldDownload) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = assignment.title || assignment.submissionId;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else {
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      console.error('Unable to open assignment document.', err);
+      alert('Unable to open this assignment document right now.');
+    } finally {
+      setBusyAssignmentId(null);
+    }
+  };
 
   return (
     <div className="br-theme-page">
@@ -163,16 +184,36 @@ export default function ReviewAssignments() {
                       <span className={`br-status-pill ${statusClassByAssignment[assignment.status]}`}>
                         {toDisplayStatus(assignment.status)}
                       </span>
+                      <button
+                        type="button"
+                        className="br-link-button br-btn-sm br-btn-secondary"
+                        onClick={() => handleOpenDocument(assignment)}
+                        disabled={busyAssignmentId === assignment.id}
+                      >
+                        View document
+                      </button>
+                      <button
+                        type="button"
+                        className="br-link-button br-btn-sm br-btn-secondary"
+                        onClick={() => handleOpenDocument(assignment, true)}
+                        disabled={busyAssignmentId === assignment.id}
+                      >
+                        Download
+                      </button>
                     </div>
 
-                    <a
-                      href={`/review/${assignment.id}`}
+                    <Link
+                      to={`/review/${assignment.id}`}
+                      state={{
+                        submissionId: assignment.submissionId,
+                        assignmentTitle: assignment.title,
+                      }}
                       className={`br-link-button br-btn-sm ${
                         assignment.status === 'submitted' ? 'br-btn-secondary' : 'br-btn-primary'
                       }`}
                     >
                       {assignment.status === 'submitted' ? 'View' : 'Review'}
-                    </a>
+                    </Link>
                   </article>
                 ))}
               </div>
