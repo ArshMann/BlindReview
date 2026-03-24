@@ -33,26 +33,21 @@ public class Assignments(ILogger<Assignments> logger, ICosmos cosmos)
             return await req.ErrorResponse(reviewablesResult.error, logger);
         }
 
-        var items = new List<ReviewAssignmentResponse>();
-        foreach (var r in reviewablesResult.value)
-        {
-            foreach (var a in r.assignments.Where(x => x.reviewerUserId == userId))
-            {
-                var submissionId = r.id ?? string.Empty;
-                items.Add(new ReviewAssignmentResponse
+        var items = reviewablesResult.value
+            .SelectMany(r => r.assignments
+                .Where(a => a.reviewerUserId == userId)
+                .Select(a => new ReviewAssignmentResponse
                 {
-                    id = $"{submissionId}:{a.reviewerUserId}",
-                    submissionId = submissionId,
-                    title = r.name ?? submissionId,
+                    id = $"{r.id}:{a.reviewerUserId}",
+                    submissionId = r.id ?? string.Empty,
+                    title = r.name ?? r.id ?? string.Empty,
                     subject = r.type ?? "Document",
                     assignedDate = a.assignedAt,
                     deadline = a.deadline,
                     status = a.status
-                });
-            }
-        }
-
-        items.Sort((x, y) => y.assignedDate.CompareTo(x.assignedDate));
+                }))
+            .OrderByDescending(x => x.assignedDate)
+            .ToList();
 
         return await req.JsonResponse(new { items }, HttpStatusCode.OK);
     }
