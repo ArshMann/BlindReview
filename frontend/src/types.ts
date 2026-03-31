@@ -33,9 +33,17 @@ export interface Reviewable {
   name: string;
   blobUrl: string;
   type: string;
-  userId: string;
+  userId?: string;
   createdAt: string;
   cost: number;
+  comments?: Comment[];
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface ListReviewablesResponse {

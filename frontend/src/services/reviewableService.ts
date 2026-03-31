@@ -1,10 +1,18 @@
 import api from '@/api/axiosInstance';
-import { type Reviewable, type ListReviewablesResponse } from '../types';
+import { type Reviewable, type ListReviewablesResponse, type Comment } from '../types';
 
 export const reviewableService = {
     getReviewables: async (): Promise<Reviewable[]> => {
         const response = await api.get<ListReviewablesResponse>('/reviewable');
         return response.data.items;
+    },
+
+    addComment: async (reviewableId: string, text: string): Promise<Comment[]> => {
+        const response = await api.post<Reviewable>(
+            `/reviewable/${encodeURIComponent(reviewableId)}/comment`,
+            { text }
+        );
+        return response.data.comments ?? [];
     },
 
     uploadReviewable: async (file: File): Promise<Reviewable> => {
