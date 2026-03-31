@@ -15,6 +15,8 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     private const string DatabaseName = "blind-review";
     private const string ReviewablesContainerName = "reviewables";
 
+    private sealed record CreateCommentRequest(string text);
+
     [Function("UploadReviewable")]
     public async Task<HttpResponseData> UploadReviewable(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file")]
@@ -208,23 +210,85 @@ public class Reviews(ILogger<Reviews> logger, IBlobService blobService, ICosmos 
     }
     [Function("AddReviewableComment")]
     public async Task<HttpResponseData> AddReviewableComment(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reviewable/comment")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reviewable/{id}/comment")]
         FunctionContext context,
         HttpRequestData req,
         string id)
     {
-        // TODO start here
-        // This is where comments on a reviewable will happen,
-        // this request should update the reviewable with the comment and add a cost point to the person reviewing,
-        // be mindful about how we can keep it anonymous  
-        var result = await req.RequestBodyResult<Comment>();
+        var bodyResult = await req.RequestBodyResult<CreateCommentRequest>();
         
-        if (!result.isSuccess)
+        if (!bodyResult.isSuccess)
         {
-            return await req.ErrorResponse(result.error);
+            return await req.ErrorResponse(bodyResult.error, logger);
         }
+
+        var commentText = bodyResult.value.text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(commentText))
+        {
+            return await req.ErrorResponse(new Exception("Comment text is required."), logger);
+        }
+
+        var userResult = context.GetUserId();
+        if (!userResult.isSuccess)
+        {
+            return await req.ErrorResponse(userResult.error, logger);
+        }
+
+        var reviewerUserId = userResult.value;
+
+        // Reviewers won't have the owner's partition key, so read via cross-partition query.
+        var reviewableQuery = await cosmos.QueryItemFixed<Reviewable>(
+            DatabaseName,
+            ReviewablesContainerName,
+            q => q.Where(r => r.id == id));
+
+        if (!reviewableQuery.isSuccess)
+        {
+            return await req.ErrorResponse(reviewableQuery.error, logger);
+        }
+
+        var reviewable = reviewableQuery.value.FirstOrDefault();
+        if (reviewable == null)
+        {
+            var notFound = req.CreateResponse(HttpStatusCode.NotFound);
+            await notFound.WriteStringAsync("Reviewable not found.");
+            return notFound;
+        }
+
+        var isAssignedReviewer = reviewable.assignments.Any(a => a.reviewerUserId == reviewerUserId);
+        if (!isAssignedReviewer)
+        {
+            var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+            await forbidden.WriteStringAsync("Not authorized to comment on this reviewable.");
+            return forbidden;
+        }
+
+        var newComment = new Comment
+        {
+            reviewerUserId = reviewerUserId,
+            text = commentText,
+            createdAt = DateTime.UtcNow
+        };
+
+        var updated = reviewable with
+        {
+            comments = [.. reviewable.comments, newComment],
+            updatedAt = DateTime.UtcNow
+        };
+
+        // Upsert using the owner's partition key.
+        var saveResult = await cosmos.PatchItem(
+            DatabaseName,
+            ReviewablesContainerName,
+            updated,
+            partitionKey: new PartitionKey(reviewable.userId));
         
-        return await req.JsonResponse(result.value, HttpStatusCode.OK);
+        if (!saveResult.isSuccess)
+        {
+            return await req.ErrorResponse(saveResult.error, logger);
+        }
+
+        return await req.JsonResponse(saveResult.value, HttpStatusCode.OK);
     } 
 
     [Function("DeleteFile")]

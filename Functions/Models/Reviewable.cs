@@ -14,4 +14,5 @@ public record Reviewable
     public DateTime? updatedAt { get; init; }
     public int cost { get; init; } // maybe like projects would cost more in reviews than something like a resume
     public List<ReviewableAssignment> assignments { get; init; } = [];
+    public List<Comment> comments { get; init; } = [];
 }

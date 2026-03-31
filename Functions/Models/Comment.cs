@@ -1,11 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace Functions.Models;
 
 public record Comment
 {
     public string id { get; set; } = Guid.NewGuid().ToString();
-    public string userId { get; set; }  // Who wrote it
-    public string userName { get; set; }  // Display name (optional, for convenience)
-    public string text { get; set; }
+    
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public string reviewerUserId { get; set; } = string.Empty;
+
+    public string text { get; set; } = string.Empty;
     public DateTime createdAt { get; set; } = DateTime.UtcNow;
     public DateTime? updatedAt { get; set; }  // If you allow editing
 }
