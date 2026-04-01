@@ -7,6 +7,11 @@ export const reviewableService = {
         return response.data.items;
     },
 
+    getReviewable: async (id: string): Promise<Reviewable> => {
+        const response = await api.get<Reviewable>(`/reviewable/${encodeURIComponent(id)}`);
+        return response.data;
+    },
+
     addComment: async (reviewableId: string, text: string): Promise<Comment[]> => {
         const response = await api.post<Reviewable>(
             `/reviewable/${encodeURIComponent(reviewableId)}/comment`,

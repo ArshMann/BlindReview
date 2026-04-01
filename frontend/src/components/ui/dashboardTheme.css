@@ -472,17 +472,54 @@ body.br-hide-legacy-shell #root > div > nav:first-of-type {
   border: 2px solid #1e293b;
 }
 
+.br-submission-block {
+  border-bottom: 1px solid #334155;
+}
+
+.br-submission-block:last-child {
+  border-bottom: none;
+}
+
 .br-submission-row {
   padding: 12px;
-  border-bottom: 1px solid #334155;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.br-submission-row:last-child {
-  border-bottom: none;
+.br-submission-comments {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.br-submission-comments-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.br-submission-comment {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  line-height: 1.45;
+}
+
+.br-submission-comment time {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
 }
 
 .br-submission-row:hover {

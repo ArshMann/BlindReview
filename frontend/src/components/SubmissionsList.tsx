@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { type Reviewable } from '@/types';
 import { reviewableService } from '../services/reviewableService';
 import ScrollableList from './ui/ScrollableList';
@@ -10,6 +11,7 @@ interface SubmissionsListProps {
 }
 
 export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps) {
+    const navigate = useNavigate();
     const [reviewables, setReviewables] = useState<Reviewable[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -30,19 +32,6 @@ export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps
 
         fetchReviewables();
     }, [refreshTrigger]);
-
-    const handleViewFile = async (fileName: string) => {
-        try {
-            const blob = await reviewableService.downloadFile(fileName);
-            const url = window.URL.createObjectURL(blob);
-
-            window.open(url, '_blank');
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-        } catch (err) {
-            console.error('Failed to view file:', err);
-            alert('Unable to open the file at this time.');
-        }
-    };
 
     if (isLoading) {
         return <p className="br-state-text">Loading your files...</p>;
@@ -75,7 +64,7 @@ export default function SubmissionsList({ refreshTrigger }: SubmissionsListProps
                         fileName={item.name}
                         type={item.type}
                         createdAt={item.createdAt}
-                        onView={() => handleViewFile(item.name)}
+                        onView={() => navigate(`/my-submissions/${encodeURIComponent(item.id)}`)}
                     />
                 ))}
             </ScrollableList>
