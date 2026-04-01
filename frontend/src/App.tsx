@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import MySubmissions from './pages/MySubmissions';
+import SubmissionDetail from './pages/SubmissionDetail';
 import ReviewAssignments from './pages/ReviewAssignments';
 import SubmitReview from './pages/SubmitReview';
 import ProfileSettings from './pages/ProfileSettings';
@@ -18,6 +19,7 @@ function App() {
 
             {/* Protected Routes */}
             <Route path="/my-submissions" element={<ProtectedRoute><MySubmissions /></ProtectedRoute>} />
+            <Route path="/my-submissions/:reviewableId" element={<ProtectedRoute><SubmissionDetail /></ProtectedRoute>} />
             <Route path="/review-assignments" element={<ProtectedRoute><ReviewAssignments /></ProtectedRoute>} />
             <Route path="/review/:assignmentId" element={<ProtectedRoute><SubmitReview /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
