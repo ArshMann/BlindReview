@@ -1,4 +1,5 @@
 Functions/local.setting.json
+Functions.Tests/bin/Debug/net8.0/local.settings.json
 Functions/Properties
 Functions/Properties/PublishProfiles/fa-blindreview-ca - Zip Deploy.pubxml
 frontend/.env
