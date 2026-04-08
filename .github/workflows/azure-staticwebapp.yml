@@ -41,6 +41,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Run frontend tests
+        run: npm test
+        working-directory: frontend
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

@@ -53,6 +53,10 @@ jobs:
         dotnet build --configuration Release --output ./output
         popd
 
+    - name: 'Run Backend Tests'
+      shell: pwsh
+      run: dotnet test Functions.Tests/Functions.Tests.csproj --configuration Release --no-restore
+
     - name: 'Run Azure Functions Action'
       uses: Azure/functions-action@v1
       id: fa
