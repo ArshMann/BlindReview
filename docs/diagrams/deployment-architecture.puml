@@ -1,0 +1,68 @@
+@startuml BlindReview_Deployment_Architecture
+title BlindReview — deployment architecture\n(PR → **staging** / preview · merge to **main** → **production**)
+
+skinparam shadowing false
+skinparam defaultFontName Verdana
+skinparam noteFontSize 10
+skinparam wrapWidth 220
+
+
+legend top left
+  |<#Wheat>| **Pull request** |
+  Workflows run on **PR** events and deploy to **staging**: Both the SWA
+  and Function App have a **staging** slot. Reviewers validate here.
+
+  |<#LightGreen>| **Production** |
+  After approval and merge to **main**, workflows deploy to **production**
+  (SWA live site + Function App **production** slots.
+end legend
+
+actor "Real Users" as Real
+actor "UAT Users (Developers, testing users etc.)" as Testing
+
+package "GitHub" #dfd6d6 {
+  rectangle "Repository\n(BlindReview)" as repo
+  package "GitHub Actions" as gha {
+    together {
+      rectangle "SWA workflow\n(PR branch)" as wf_swa_pr #Wheat
+      rectangle "Functions workflow\n(PR branch)" as wf_fn_pr #Wheat
+    }
+    together {
+      rectangle "SWA workflow\n(push **main**)" as wf_swa_prod #LightGreen
+      rectangle "Functions workflow\n(push **main**)" as wf_fn_prod #LightGreen
+    }
+  }
+}
+
+
+cloud "Microsoft Azure" #F5F9FF {
+  frame "Staging (PR deployments)" #FFFAF0 {
+    rectangle "Static Web App\n (Staging Slot)" as swa_st #Wheat
+    rectangle "Function App \n(Staging Slot)" as fn_st #Wheat
+  }
+
+  frame "Production (after merge)" #F0FFF0 {
+    rectangle "Static Web App\n (Production Slot)" as swa_prod #LightGreen
+    rectangle "Function App \n(Production Slot)" as fn_prod #LightGreen
+  }
+}
+
+Real --> swa_prod 
+
+Testing ---> swa_st 
+Real ---> fn_prod 
+Testing --> fn_st 
+
+repo --> wf_swa_pr : **PR** opened \n (target **main**)
+repo --> wf_fn_pr : **PR** opened \n (target **main**)
+
+wf_swa_pr ---> swa_st 
+wf_fn_pr ---> fn_st 
+
+repo --> wf_swa_prod : **push** **main**\n(after PR merged)
+repo --> wf_fn_prod : **push** **main**\n(after PR merged)
+
+wf_swa_prod "If approved\n after staging" --> swa_prod
+wf_fn_prod "If approved\n after staging" --> fn_prod 
+
+@enduml
