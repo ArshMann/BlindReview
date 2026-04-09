@@ -1,4 +1,4 @@
-# BlindReview — Final Project Submission
+# BlindReview - Final Project Submission
 
 ## Table of contents
 
@@ -21,6 +21,7 @@
 | **CI/CD pipeline configuration** | [`.github/workflows/`](https://github.com/ArshMann/BlindReview/tree/main/.github/workflows) -- see [Section 5](#5-cicd-pipeline) |
 | **Project report (HLD)** | **This document:** [FINAL_PROJECT_SUBMISSION.md](https://github.com/ArshMann/BlindReview/blob/main/FINAL_PROJECT_SUBMISSION.md) · [Section 2](#2-project-summary--hld-high-level-design) |
 | **Code reviews** | GitHub [Pull Requests](https://github.com/ArshMann/BlindReview/pulls) for this repository |
+| Postman | [blind-review](https://www.postman.com/markusafonso/workspace/blind-review) | 
 
 ---
 
@@ -48,7 +49,7 @@ The system follows a three-tier, cloud-oriented/hybrid layout: a SPA talks to a 
 | **Security** | JWT bearer tokens; middleware bypass only for `Login` / `CreateUser` | Consistent protection of review and user APIs without duplicating auth checks in every function. Also in-house, so we manage everything |
 | **Reviewer assignment** | Pluggable strategies (`IAssignmentStrategy`) | Encapsulates rules (e.g. default vs. dedicated reviewer) and keeps assignment logic unit-testable and easily modifiable. |
 
-> [!Note] Most if not all of these services are also free or pay-per-use, which was a deciding factor in choosing the services that we did. It costed $0.12 to run this project throughout the ~4 month period
+> Most if not all of these services are also free or pay-per-use, which was a deciding factor in choosing the services that we did. It costed $0.12 to run this project throughout the ~4 month period
 
 #### Deployment architecture
 
@@ -85,9 +86,9 @@ The system follows a three-tier, cloud-oriented/hybrid layout: a SPA talks to a 
 
 ### 3.2 Documentation set
 
-- **[README.md](https://github.com/ArshMann/BlindReview/blob/main/README.md)** — Project goals, architecture diagram, local setup (Functions on port 7106, Vite on 5173), proxy behavior, troubleshooting.  
-- **[TECH.md](https://github.com/ArshMann/BlindReview/blob/main/TECH.md)** — Stack versions, design rationale, configuration samples, security and performance notes.  
-- **This submission** — HLD narrative, checklist links, CI/CD explanation for graders: [FINAL_PROJECT_SUBMISSION.md](https://github.com/ArshMann/BlindReview/blob/main/FINAL_PROJECT_SUBMISSION.md).
+- **[README.md](https://github.com/ArshMann/BlindReview/blob/main/README.md)** : Project goals, architecture diagram, local setup (Functions on port 7106, Vite on 5173), proxy behavior, troubleshooting.  
+- **[TECH.md](https://github.com/ArshMann/BlindReview/blob/main/TECH.md)** : Stack versions, design rationale, configuration samples, security and performance notes.  
+- **This submission** : HLD narrative, checklist links, CI/CD explanation for graders: [FINAL_PROJECT_SUBMISSION.md](https://github.com/ArshMann/BlindReview/blob/main/FINAL_PROJECT_SUBMISSION.md).
 
 ### 3.3 Representative API surface (Azure Functions)
 
@@ -132,8 +133,8 @@ The **Static Web Apps** workflow runs `npm ci` and `npm test` on Ubuntu before d
 
 The project uses **GitHub Actions** with **two workflows** that automate build, test, and deployment to Azure:
 
-1. **Frontend → Azure Static Web Apps**  
-2. **Backend → Azure Function App (.NET 8)**
+1. **Frontend -> Azure Static Web Apps**  
+2. **Backend -> Azure Function App (.NET 8)**
 
 Together they implement **continuous integration** (build + test on each trigger) and **continuous deployment** (deploy to Azure when criteria are met).
 
@@ -144,7 +145,7 @@ Together they implement **continuous integration** (build + test on each trigger
 | Aspect | Detail |
 |--------|--------|
 | **Triggers** | Push to `main`; pull requests (opened, synchronize, reopened, closed) targeting `main`. |
-| **Steps (simplified)** | Checkout → `npm ci` in `frontend/` → **`npm test`** → Azure Static Web Apps deploy action (`upload`). |
+| **Steps (simplified)** | Checkout -> `npm ci` in `frontend/` -> **`npm test`** -> Azure Static Web Apps deploy action (`upload`). |
 | **PR behavior** | Closed PRs run a “close” job to tear down preview environments (Azure SWA integration). |
 | **Secrets** | `AZURE_STATIC_WEB_APPS_API_TOKEN` (deployment token). `GITHUB_TOKEN` used for PR comments. |
 
@@ -159,22 +160,22 @@ Together they implement **continuous integration** (build + test on each trigger
 | **Triggers** | Push to `main`. |
 | **Environment** | GitHub Environment `dev` (can enforce protection rules). |
 | **Runner** | `windows-latest` (matches template for Functions deployment). |
-| **Steps (simplified)** | Checkout → setup .NET 8 → `dotnet build` (Release) for `Functions/` → **`dotnet test`** on `Functions.Tests` → Azure Functions deploy action with publish profile. |
+| **Steps (simplified)** | Checkout -> setup .NET 8 -> `dotnet build` (Release) for `Functions/` -> **`dotnet test`** on `Functions.Tests` -> Azure Functions deploy action with publish profile. |
 | **Secrets** | `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` (and optionally Azure RBAC if you switch auth mode). |
 
 **Benefits:** Backend releases are **repeatable**, **test-gated**, and tied to a known .NET SDK version; failures in tests block deployment.
 
-### 5.4 Reliability and automation (evaluation alignment)
+### 5.4 Reliability and automation 
 
 - **Automation:** No manual build or FTP step; merge to `main` drives deployment after tests pass.  
 - **Reliability:** Separating frontend and backend pipelines allows one service to deploy independently; test steps catch many regressions before Azure receives artifacts.  
 - **Documentation:** Workflow files contain inline comments linking to Microsoft and Azure Actions documentation for token and profile setup.
 
-### 5.5 Operational prerequisites (for instructors / TAs verifying “fully operational”)
+### 5.5 Operational prerequisites 
 
 - Azure resources: Static Web App + Function App must exist.  
 - Repository secrets must be configured as described in the workflow headers.  
-- Without secrets, workflows may **fail at deploy** while still demonstrating **build and test** stages if adapted for forked grading—confirm on the [**Actions**](https://github.com/ArshMann/BlindReview/actions) tab of the course’s fork or team repo.
+- Without secrets, workflows may **fail at deploy** while still demonstrating **build and test** stages if adapted for forked grading-confirm on the [**Actions**](https://github.com/ArshMann/BlindReview/actions) tab of the course’s fork or team repo.
 
 ---
 
