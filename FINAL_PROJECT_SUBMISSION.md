@@ -19,7 +19,7 @@
 | **Codebase with documentation** | Repository root: [README.md](https://github.com/ArshMann/BlindReview/blob/main/README.md) (setup, architecture overview, endpoints overview); deep stack notes: [TECH.md](https://github.com/ArshMann/BlindReview/blob/main/TECH.md) |
 | **Unit / functional tests** | Backend: [Functions.Tests/](https://github.com/ArshMann/BlindReview/tree/main/Functions.Tests) · Frontend: [frontend/src/](https://github.com/ArshMann/BlindReview/tree/main/frontend/src) (look for `__tests__` folders and `*.test.ts(x)` files) |
 | **CI/CD pipeline configuration** | [`.github/workflows/`](https://github.com/ArshMann/BlindReview/tree/main/.github/workflows) -- see [Section 5](#5-cicd-pipeline) |
-| **Project report (HLD)** | **This document:** [FINAL_PROJECT_SUBMISSION.md](https://github.com/ArshMann/BlindReview/blob/main/FINAL_PROJECT_SUBMISSION.md) · [Section 2](#2-project-summary--hld-high-level-design) |
+| **Project report (HLD)** | [HLD.md](https://github.com/ArshMann/BlindReview/blob/main/docs/HLD.md) |
 | **Code reviews** | GitHub [Pull Requests](https://github.com/ArshMann/BlindReview/pulls) for this repository |
 | Postman | [blind-review](https://www.postman.com/markusafonso/workspace/blind-review) | 
 
@@ -29,7 +29,7 @@
 
 ### 2.1 Problem statement
 
-Peer review in academic and professional settings often suffers from bias when reviewers know the author, and from opaque processes when tooling does not separate identity from feedback. BlindReview is a proof-of-concept web platform that supports anonymous-style review workflows: authors submit work, reviewers receive assignments and submit feedback, and the system is designed to keep identities separated where the workflow requires it, while still supporting authentication and auditing on the server side.
+Peer review in academic and professional settings often suffers from bias when reviewers know the author, and from opaque processes when tooling does not separate identity from feedback. BlindReview is a proof-of-concept web platform that supports anonymous-style review workflows: authors submit work, reviewers receive assignments and submit feedback, and the system is designed to keep identities separated where the workflow requires it, while still supporting authentication and auditing on the server side. Our full [HLD.md](https://github.com/ArshMann/BlindReview/blob/main/docs/HLD.md) can be found [here](https://github.com/ArshMann/BlindReview/blob/main/docs/HLD.md).
 
 ### 2.2 Key architectural choices
 
